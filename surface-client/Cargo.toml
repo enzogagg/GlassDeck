@@ -1,0 +1,8 @@
+[package]
+name = "surface-client"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+shared = { path = "../shared" }
+slint = "1.5.0"
