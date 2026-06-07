@@ -102,30 +102,6 @@ slint::slint! {
         }
     }
 
-    component IconButton inherits Rectangle {
-        in property <string> symbol;
-        in property <brush> tint: #ffffff14;
-        callback activated();
-
-        background: icon_touch.pressed ? #ffffff2b : tint;
-        border-radius: 18px;
-        border-width: 1px;
-        border-color: #ffffff20;
-
-        Text {
-            text: symbol;
-            color: white;
-            font-size: 20px;
-            font-weight: 850;
-            horizontal-alignment: center;
-            vertical-alignment: center;
-        }
-
-        icon_touch := TouchArea {
-            clicked => { root.activated(); }
-        }
-    }
-
     component BatteryColumn inherits Rectangle {
         in property <int> percent: 0;
         in property <bool> charging: false;
@@ -302,16 +278,6 @@ slint::slint! {
                 overflow: elide;
             }
 
-            IconButton {
-                x: 812px;
-                y: 12px;
-                width: 36px;
-                height: 36px;
-                symbol: "X";
-                tint: #ffffff10;
-                activated => { root.request-exit(); }
-            }
-
             BatteryMenuBar {
                 x: 860px;
                 y: 14px;
@@ -348,41 +314,11 @@ slint::slint! {
                 font-weight: 700;
             }
 
-            GlassPanel {
-                x: 58px;
-                y: 302px;
-                width: 420px;
-                height: 152px;
-                panel-background: #ffffff10;
-                corner-radius: 38px;
-
-                Text {
-                    x: 30px;
-                    y: 26px;
-                    text: network-state == "Connecté" ? network-name : "Hors ligne";
-                    color: white;
-                    font-size: 34px;
-                    font-weight: 850;
-                    overflow: elide;
-                }
-
-                Text {
-                    x: 32px;
-                    y: 84px;
-                    width: parent.width - 64px;
-                    text: ip-address;
-                    color: #ffffff8f;
-                    font-size: 23px;
-                    font-weight: 700;
-                    overflow: elide;
-                }
-            }
-
             Text {
                 x: 64px;
                 y: 520px;
                 width: 680px;
-                text: ip-address;
+                text: "Surface";
                 color: #ffffff52;
                 font-size: 22px;
                 font-weight: 650;
@@ -468,16 +404,6 @@ slint::slint! {
                 activated => { root.request-exit(); }
             }
 
-            IconButton {
-                x: 736px;
-                y: 44px;
-                width: 52px;
-                height: 52px;
-                symbol: "X";
-                tint: #ffffff18;
-                activated => { root.control-center-open = false; }
-            }
-
             GlassPanel {
                 x: 50px;
                 y: 154px;
@@ -506,10 +432,10 @@ slint::slint! {
                 }
 
                 BatteryColumn {
-                    x: 232px;
-                    y: 28px;
-                    width: 66px;
-                    height: 450px;
+                    x: 246px;
+                    y: 0px;
+                    width: 84px;
+                    height: 506px;
                     percent: battery-percent;
                     charging: battery-charging;
                 }

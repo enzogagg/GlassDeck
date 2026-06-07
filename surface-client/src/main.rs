@@ -2,6 +2,8 @@ mod system;
 mod ui;
 
 use slint::{ComponentHandle, SharedString, Timer, TimerMode};
+use std::cell::Cell;
+use std::rc::Rc;
 use std::time::Duration;
 use system::{brightness, read_system_snapshot, SystemSnapshot};
 use ui::MainWindow;
@@ -34,15 +36,30 @@ fn register_actions(ui: &MainWindow) {
     });
 
     let weak_ui = ui.as_weak();
+    let pending_brightness = Rc::new(Cell::new(ui.get_brightness()));
+    let brightness_timer = Rc::new(Timer::default());
+    let pending_brightness_for_callback = pending_brightness.clone();
+    let brightness_timer_for_callback = brightness_timer.clone();
     ui.on_set_brightness(move |value| {
-        let message = match brightness::set_percent(value) {
-            Ok(()) => "Luminosité mise à jour".to_string(),
-            Err(err) => format!("Luminosité: {err}"),
-        };
+        pending_brightness_for_callback.set(value);
 
-        if let Some(ui) = weak_ui.upgrade() {
-            apply_snapshot(&ui, read_system_snapshot(&message));
-        }
+        let weak_ui = weak_ui.clone();
+        let pending_brightness = pending_brightness_for_callback.clone();
+        brightness_timer_for_callback.start(
+            TimerMode::SingleShot,
+            Duration::from_millis(180),
+            move || {
+                let value = pending_brightness.get();
+                let message = match brightness::set_percent(value) {
+                    Ok(()) => "Luminosité mise à jour".to_string(),
+                    Err(err) => format!("Luminosité: {err}"),
+                };
+
+                if let Some(ui) = weak_ui.upgrade() {
+                    apply_snapshot(&ui, read_system_snapshot(&message));
+                }
+            },
+        );
     });
 
     let weak_ui = ui.as_weak();
