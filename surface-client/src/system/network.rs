@@ -13,6 +13,13 @@ pub fn read_network() -> NetworkStatus {
         };
     }
 
+    if read_active_wifi_ip().is_some() {
+        return NetworkStatus {
+            name: "Wi‑Fi".to_string(),
+            state: "Connecté".to_string(),
+        };
+    }
+
     NetworkStatus {
         name: "Wi‑Fi".to_string(),
         state: wifi_radio_state(),

@@ -231,21 +231,31 @@ slint::slint! {
         Rectangle {
             x: -170px;
             y: -190px;
-            width: 610px;
-            height: 610px;
-            border-radius: 305px;
-            background: #0a84ff;
-            opacity: 0.20;
+            width: 760px;
+            height: 760px;
+            border-radius: 380px;
+            background: #1d1d1f;
+            opacity: 0.82;
         }
 
         Rectangle {
-            x: 694px;
-            y: 402px;
-            width: 480px;
-            height: 480px;
-            border-radius: 240px;
-            background: #30d158;
-            opacity: 0.11;
+            x: 592px;
+            y: 86px;
+            width: 540px;
+            height: 540px;
+            border-radius: 270px;
+            background: #2c2c2e;
+            opacity: 0.72;
+        }
+
+        Rectangle {
+            x: 90px;
+            y: 430px;
+            width: 760px;
+            height: 220px;
+            border-radius: 110px;
+            background: #141416;
+            opacity: 0.82;
         }
 
         Rectangle {
@@ -297,7 +307,7 @@ slint::slint! {
                 y: 12px;
                 width: 36px;
                 height: 36px;
-                symbol: "⏻";
+                symbol: "X";
                 tint: #ffffff10;
                 activated => { root.request-exit(); }
             }
@@ -321,21 +331,51 @@ slint::slint! {
 
             Text {
                 x: 58px;
-                y: 82px;
+                y: 92px;
                 text: "GlassDeck";
                 color: white;
-                font-size: 68px;
+                font-size: 74px;
                 font-weight: 900;
             }
 
             Text {
                 x: 62px;
-                y: 164px;
+                y: 184px;
                 width: 630px;
                 text: "Surface";
                 color: #ffffff9e;
-                font-size: 32px;
+                font-size: 34px;
                 font-weight: 700;
+            }
+
+            GlassPanel {
+                x: 58px;
+                y: 302px;
+                width: 420px;
+                height: 152px;
+                panel-background: #ffffff10;
+                corner-radius: 38px;
+
+                Text {
+                    x: 30px;
+                    y: 26px;
+                    text: network-state == "Connecté" ? network-name : "Hors ligne";
+                    color: white;
+                    font-size: 34px;
+                    font-weight: 850;
+                    overflow: elide;
+                }
+
+                Text {
+                    x: 32px;
+                    y: 84px;
+                    width: parent.width - 64px;
+                    text: ip-address;
+                    color: #ffffff8f;
+                    font-size: 23px;
+                    font-weight: 700;
+                    overflow: elide;
+                }
             }
 
             Text {
@@ -423,9 +463,19 @@ slint::slint! {
                 width: 168px;
                 height: 52px;
                 label: "Quitter";
-                symbol: "⏻";
+                symbol: "X";
                 tint: #ffffff18;
                 activated => { root.request-exit(); }
+            }
+
+            IconButton {
+                x: 736px;
+                y: 44px;
+                width: 52px;
+                height: 52px;
+                symbol: "X";
+                tint: #ffffff18;
+                activated => { root.control-center-open = false; }
             }
 
             GlassPanel {
@@ -448,17 +498,18 @@ slint::slint! {
                 Text {
                     x: 28px;
                     y: 68px;
+                    width: 176px;
                     text: battery-percent + "%";
                     color: white;
-                    font-size: 82px;
+                    font-size: 76px;
                     font-weight: 900;
                 }
 
                 BatteryColumn {
-                    x: 210px;
-                    y: 42px;
-                    width: 76px;
-                    height: 324px;
+                    x: 232px;
+                    y: 28px;
+                    width: 66px;
+                    height: 450px;
                     percent: battery-percent;
                     charging: battery-charging;
                 }
@@ -497,8 +548,8 @@ slint::slint! {
                     y: 24px;
                     width: 512px;
                     height: 104px;
-                    label: "Wi‑Fi";
-                    value: network-name;
+                    label: "Connexion";
+                    value: network-state == "Connecté" ? network-name : network-state;
                     symbol: "⌁";
                     accent: network-state == "Connecté" ? #30d158 : #ff9f0a;
                 }
@@ -534,7 +585,7 @@ slint::slint! {
                 Text {
                     x: 26px;
                     y: 22px;
-                    text: "Wi‑Fi";
+                    text: "Réseau";
                     color: white;
                     font-size: 31px;
                     font-weight: 850;
@@ -544,7 +595,7 @@ slint::slint! {
                     x: 26px;
                     y: 78px;
                     width: parent.width - 52px;
-                    text: network-name;
+                    text: network-state == "Connecté" ? network-name : network-state;
                     color: white;
                     font-size: 28px;
                     font-weight: 850;
@@ -555,7 +606,7 @@ slint::slint! {
                     x: 26px;
                     y: 120px;
                     width: parent.width - 52px;
-                    text: network-state;
+                    text: network-state == "Connecté" ? "Connecté" : "Aucune connexion";
                     color: #ffffffa0;
                     font-size: 20px;
                     font-weight: 700;
@@ -655,6 +706,16 @@ slint::slint! {
                     height: 6px;
                     border-radius: 3px;
                     background: #ffffff70;
+                }
+
+                Text {
+                    y: 20px;
+                    width: parent.width;
+                    text: "Fermer";
+                    color: #ffffffb8;
+                    font-size: 17px;
+                    font-weight: 800;
+                    horizontal-alignment: center;
                 }
 
                 handle_swipe := TouchArea {
