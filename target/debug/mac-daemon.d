@@ -1,1 +1,0 @@
-/Users/enzogaggiotti/Library/CloudStorage/SynologyDrive-Personnel/Infrastructure/GlassDeck/target/debug/mac-daemon: /Users/enzogaggiotti/Library/CloudStorage/SynologyDrive-Personnel/Infrastructure/GlassDeck/mac-daemon/src/main.rs /Users/enzogaggiotti/Library/CloudStorage/SynologyDrive-Personnel/Infrastructure/GlassDeck/shared/src/lib.rs
