@@ -1,5 +1,5 @@
 slint::slint! {
-    import { Slider, Switch } from "std-widgets.slint";
+    import { Switch } from "std-widgets.slint";
 
     component GlassPanel inherits Rectangle {
         in property <brush> panel-background: #1c1c1ecc;
@@ -55,74 +55,47 @@ slint::slint! {
         in property <int> percent: 0;
         in property <bool> charging: false;
 
-        background: #ffffff18;
-        border-radius: 14px;
-        border-width: 1px;
-        border-color: #ffffff33;
+        background: #00000000;
 
         Rectangle {
-            x: 7px;
-            y: 6px;
-            width: 43px;
-            height: 18px;
-            border-radius: 5px;
-            border-width: 2px;
-            border-color: #ffffffe8;
+            x: 0px;
+            y: 8px;
+            width: 48px;
+            height: 17px;
+            border-radius: 4px;
+            border-width: 1px;
+            border-color: #ffffffd8;
             background: #00000000;
 
             Rectangle {
                 x: 3px;
                 y: 3px;
-                width: 33px * root.percent / 100;
-                height: 8px;
-                border-radius: 3px;
+                width: 40px * root.percent / 100;
+                height: 9px;
+                border-radius: 2px;
                 background: root.charging ? #30d158 : root.percent < 20 ? #ff453a : #ffffffe8;
             }
         }
 
         Rectangle {
-            x: 51px;
-            y: 12px;
-            width: 3px;
+            x: 50px;
+            y: 13px;
+            width: 2px;
             height: 6px;
             border-radius: 2px;
-            background: #ffffffe8;
+            background: #ffffffd8;
         }
 
         Text {
-            x: 62px;
-            width: parent.width - 72px;
+            x: 60px;
+            width: parent.width - 60px;
             height: parent.height;
             text: root.percent + "%";
             color: white;
-            font-size: 17px;
+            font-size: 16px;
             font-weight: 800;
             vertical-alignment: center;
             horizontal-alignment: right;
-        }
-    }
-
-    component IconButton inherits Rectangle {
-        in property <string> symbol;
-        in property <brush> tint: #ffffff14;
-        callback activated();
-
-        background: icon_touch.pressed ? #ffffff2b : tint;
-        border-radius: 18px;
-        border-width: 1px;
-        border-color: #ffffff20;
-
-        Text {
-            text: symbol;
-            color: white;
-            font-size: 20px;
-            font-weight: 850;
-            horizontal-alignment: center;
-            vertical-alignment: center;
-        }
-
-        icon_touch := TouchArea {
-            clicked => { root.activated(); }
         }
     }
 
@@ -225,37 +198,43 @@ slint::slint! {
         in property <bool> auto-brightness: false;
         in property <string> status-message: "Prêt";
         callback set-brightness(float);
+        callback adjust-brightness(float);
         callback toggle-auto-brightness();
         callback request-exit();
 
         Rectangle {
-            x: -170px;
-            y: -190px;
-            width: 760px;
-            height: 760px;
-            border-radius: 380px;
-            background: #1d1d1f;
-            opacity: 0.82;
+            x: 0px;
+            y: 0px;
+            width: 1024px;
+            height: 720px;
+            background: #050506;
         }
 
         Rectangle {
-            x: 592px;
-            y: 86px;
-            width: 540px;
-            height: 540px;
-            border-radius: 270px;
-            background: #2c2c2e;
-            opacity: 0.72;
-        }
-
-        Rectangle {
-            x: 90px;
-            y: 430px;
-            width: 760px;
+            x: 0px;
+            y: 60px;
+            width: 1024px;
             height: 220px;
-            border-radius: 110px;
-            background: #141416;
-            opacity: 0.82;
+            background: #151517;
+            opacity: 0.96;
+        }
+
+        Rectangle {
+            x: 0px;
+            y: 280px;
+            width: 1024px;
+            height: 220px;
+            background: #0e0f12;
+            opacity: 0.98;
+        }
+
+        Rectangle {
+            x: 0px;
+            y: 500px;
+            width: 1024px;
+            height: 220px;
+            background: #1c1c1e;
+            opacity: 0.88;
         }
 
         Rectangle {
@@ -302,16 +281,6 @@ slint::slint! {
                 overflow: elide;
             }
 
-            IconButton {
-                x: 812px;
-                y: 12px;
-                width: 36px;
-                height: 36px;
-                symbol: "X";
-                tint: #ffffff10;
-                activated => { root.request-exit(); }
-            }
-
             BatteryMenuBar {
                 x: 860px;
                 y: 14px;
@@ -348,42 +317,12 @@ slint::slint! {
                 font-weight: 700;
             }
 
-            GlassPanel {
-                x: 58px;
-                y: 302px;
-                width: 420px;
-                height: 152px;
-                panel-background: #ffffff10;
-                corner-radius: 38px;
-
-                Text {
-                    x: 30px;
-                    y: 26px;
-                    text: network-state == "Connecté" ? network-name : "Hors ligne";
-                    color: white;
-                    font-size: 34px;
-                    font-weight: 850;
-                    overflow: elide;
-                }
-
-                Text {
-                    x: 32px;
-                    y: 84px;
-                    width: parent.width - 64px;
-                    text: ip-address;
-                    color: #ffffff8f;
-                    font-size: 23px;
-                    font-weight: 700;
-                    overflow: elide;
-                }
-            }
-
             Text {
                 x: 64px;
-                y: 520px;
+                y: 506px;
                 width: 680px;
-                text: ip-address;
-                color: #ffffff52;
+                text: "Surface";
+                color: #ffffff4f;
                 font-size: 22px;
                 font-weight: 650;
                 overflow: elide;
@@ -437,6 +376,14 @@ slint::slint! {
                 opacity: 0.13;
             }
 
+            close_swipe := TouchArea {
+                moved => {
+                    if (self.mouse-y - self.pressed-y < -42px) {
+                        root.control-center-open = false;
+                    }
+                }
+            }
+
             Text {
                 x: 50px;
                 y: 42px;
@@ -449,7 +396,7 @@ slint::slint! {
             Text {
                 x: 54px;
                 y: 104px;
-                width: 520px;
+                width: 720px;
                 text: status-message;
                 color: #ffffff93;
                 font-size: 20px;
@@ -466,16 +413,6 @@ slint::slint! {
                 symbol: "X";
                 tint: #ffffff18;
                 activated => { root.request-exit(); }
-            }
-
-            IconButton {
-                x: 736px;
-                y: 44px;
-                width: 52px;
-                height: 52px;
-                symbol: "X";
-                tint: #ffffff18;
-                activated => { root.control-center-open = false; }
             }
 
             GlassPanel {
@@ -506,10 +443,10 @@ slint::slint! {
                 }
 
                 BatteryColumn {
-                    x: 232px;
-                    y: 28px;
-                    width: 66px;
-                    height: 450px;
+                    x: 246px;
+                    y: 0px;
+                    width: 84px;
+                    height: 506px;
                     percent: battery-percent;
                     charging: battery-charging;
                 }
@@ -651,15 +588,44 @@ slint::slint! {
                     font-weight: 900;
                 }
 
-                Slider {
+                Rectangle {
                     x: 24px;
                     y: 132px;
                     width: parent.width - 48px;
-                    height: 58px;
-                    minimum: 1;
-                    maximum: 100;
-                    value <=> root.brightness;
-                    changed => { root.set-brightness(self.value); }
+                    height: 28px;
+                    border-radius: 14px;
+                    background: #ffffff24;
+
+                    Rectangle {
+                        width: parent.width * root.brightness / 100;
+                        height: parent.height;
+                        border-radius: 14px;
+                        background: #f5f5f7;
+                    }
+                }
+
+                Rectangle {
+                    x: 24px;
+                    y: 112px;
+                    width: 121px;
+                    height: 76px;
+                    background: #00000000;
+
+                    decrease_touch := TouchArea {
+                        clicked => { root.adjust-brightness(-10); }
+                    }
+                }
+
+                Rectangle {
+                    x: 145px;
+                    y: 112px;
+                    width: 121px;
+                    height: 76px;
+                    background: #00000000;
+
+                    increase_touch := TouchArea {
+                        clicked => { root.adjust-brightness(10); }
+                    }
                 }
 
                 Rectangle {
@@ -690,44 +656,12 @@ slint::slint! {
             }
 
             Rectangle {
-                x: 402px;
-                y: 660px;
-                width: 220px;
-                height: 58px;
-                border-radius: 29px;
-                background: #ffffff10;
-                border-width: 1px;
-                border-color: #ffffff20;
-
-                Rectangle {
-                    x: 60px;
-                    y: 13px;
-                    width: 100px;
-                    height: 6px;
-                    border-radius: 3px;
-                    background: #ffffff70;
-                }
-
-                Text {
-                    y: 20px;
-                    width: parent.width;
-                    text: "Fermer";
-                    color: #ffffffb8;
-                    font-size: 17px;
-                    font-weight: 800;
-                    horizontal-alignment: center;
-                }
-
-                handle_swipe := TouchArea {
-                    clicked => {
-                        root.control-center-open = false;
-                    }
-                    moved => {
-                        if (self.mouse-y - self.pressed-y < -24px) {
-                            root.control-center-open = false;
-                        }
-                    }
-                }
+                x: 462px;
+                y: 692px;
+                width: 100px;
+                height: 6px;
+                border-radius: 3px;
+                background: #ffffff70;
             }
         }
     }
