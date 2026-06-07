@@ -20,7 +20,7 @@ fn main() -> Result<(), slint::PlatformError> {
 fn register_refresh_timer(ui: &MainWindow) {
     let weak_ui = ui.as_weak();
     let timer = Timer::default();
-    timer.start(TimerMode::Repeated, Duration::from_secs(5), move || {
+    timer.start(TimerMode::Repeated, Duration::from_secs(1), move || {
         if let Some(ui) = weak_ui.upgrade() {
             apply_snapshot(&ui, read_system_snapshot("Synchronisé"));
         }
@@ -28,13 +28,6 @@ fn register_refresh_timer(ui: &MainWindow) {
 }
 
 fn register_actions(ui: &MainWindow) {
-    let weak_ui = ui.as_weak();
-    ui.on_refresh(move || {
-        if let Some(ui) = weak_ui.upgrade() {
-            apply_snapshot(&ui, read_system_snapshot("Actualisé"));
-        }
-    });
-
     let weak_ui = ui.as_weak();
     ui.on_set_brightness(move |value| {
         let message = match brightness::set_percent(value) {

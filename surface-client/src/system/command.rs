@@ -13,13 +13,6 @@ pub fn command_output(command: &str, args: &[&str]) -> Result<String, String> {
     }
 }
 
-pub fn command_success(command: &str, args: &[&str]) -> bool {
-    Command::new(command)
-        .args(args)
-        .status()
-        .is_ok_and(|status| status.success())
-}
-
 pub fn run_command(mut command: Command) -> Result<(), String> {
     let output = command.output().map_err(|err| err.to_string())?;
     if output.status.success() {

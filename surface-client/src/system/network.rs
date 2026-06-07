@@ -1,4 +1,4 @@
-use super::command::{command_output, command_success, run_command};
+use super::command::{command_output, run_command};
 use std::process::Command;
 
 pub struct NetworkStatus {
@@ -14,16 +14,9 @@ pub fn read_network() -> NetworkStatus {
         };
     }
 
-    if command_success("ip", &["route", "get", "1.1.1.1"]) {
-        return NetworkStatus {
-            name: "Ethernet".to_string(),
-            state: "Connecté".to_string(),
-        };
-    }
-
     NetworkStatus {
-        name: "Hors ligne".to_string(),
-        state: "Non connecté".to_string(),
+        name: "Wi‑Fi".to_string(),
+        state: wifi_radio_state(),
     }
 }
 
@@ -84,4 +77,18 @@ fn current_wifi_ssid() -> Option<String> {
             .filter(|ssid| !ssid.is_empty())
             .map(ToOwned::to_owned)
     })
+}
+
+fn wifi_radio_state() -> String {
+    command_output("nmcli", &["radio", "wifi"])
+        .ok()
+        .map(|state| {
+            if state.trim().eq_ignore_ascii_case("enabled") {
+                "Non connecté"
+            } else {
+                "Désactivé"
+            }
+        })
+        .unwrap_or("Indisponible")
+        .to_string()
 }
