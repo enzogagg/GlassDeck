@@ -42,3 +42,64 @@ cargo test-all
 - `Cargo.lock` is committed because this workspace builds applications.
 - Build outputs under `target/` are ignored.
 - Local editor, OS, secret, and agent workspace files are ignored.
+
+## Surface Installation
+
+The Surface client can be installed for the current Linux user and started
+automatically with a `systemd --user` service.
+
+From a source checkout on the Surface:
+
+```sh
+./scripts/install-surface.sh
+```
+
+This command builds `surface-client` in release mode, installs it under
+`~/.local/opt/glassdeck`, creates the `~/.local/bin/glassdeck-surface` command,
+and enables `glassdeck-surface.service` for automatic startup.
+
+If the Surface must start GlassDeck before a manual login, install with:
+
+```sh
+./scripts/install-surface.sh --enable-linger
+```
+
+The Linux KMS backend may require the Surface user to have device access through
+groups such as `video`, `input`, or `render`, depending on the distribution.
+
+Useful service commands:
+
+```sh
+systemctl --user status glassdeck-surface.service
+systemctl --user restart glassdeck-surface.service
+journalctl --user -u glassdeck-surface.service -f
+```
+
+To uninstall:
+
+```sh
+./scripts/uninstall-surface.sh
+```
+
+### Build a Downloadable Surface Package
+
+On a Linux machine matching the Surface architecture:
+
+```sh
+./scripts/package-surface.sh
+```
+
+The package is written to `dist/glassdeck-surface-<version>-<arch>.tar.gz`.
+Copy or download that archive on the Surface, extract it, then run:
+
+```sh
+tar -xzf glassdeck-surface-<version>-<arch>.tar.gz
+cd glassdeck-surface-<version>-<arch>
+./install.sh
+```
+
+For boot startup before login:
+
+```sh
+./install.sh --enable-linger
+```

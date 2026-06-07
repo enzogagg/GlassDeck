@@ -1,0 +1,14 @@
+[Unit]
+Description=GlassDeck Surface touch client
+Documentation=https://gitea.ega.ovh/enzogagg/GlassDeck
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/glassdeck-surface
+Restart=on-failure
+RestartSec=3
+Environment=RUST_LOG=info
+Environment=SLINT_BACKEND=linuxkms
+
+[Install]
+WantedBy=default.target
