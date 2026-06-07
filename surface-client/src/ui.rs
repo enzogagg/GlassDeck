@@ -3,9 +3,10 @@ slint::slint! {
 
     component GlassPanel inherits Rectangle {
         in property <brush> panel-background: #1c1c1ecc;
+        in property <length> corner-radius: 34px;
 
         background: panel-background;
-        border-radius: 34px;
+        border-radius: corner-radius;
         border-width: 1px;
         border-color: #ffffff24;
     }
@@ -16,89 +17,112 @@ slint::slint! {
         in property <brush> tint: #ffffff18;
         callback activated();
 
-        background: touch.pressed ? #ffffff30 : tint;
+        background: button_touch.pressed ? #ffffff30 : tint;
         border-radius: 24px;
         border-width: 1px;
         border-color: #ffffff1f;
 
         Text {
-            x: 22px;
+            x: 18px;
             width: 34px;
             height: parent.height;
             text: symbol;
             color: white;
-            font-size: 25px;
+            font-size: 23px;
             font-weight: 800;
             horizontal-alignment: center;
             vertical-alignment: center;
         }
 
         Text {
-            x: 68px;
-            width: parent.width - 88px;
+            x: 60px;
+            width: parent.width - 74px;
             height: parent.height;
             text: label;
             color: white;
-            font-size: 19px;
+            font-size: 18px;
             font-weight: 750;
             vertical-alignment: center;
             overflow: elide;
         }
 
-        touch := TouchArea {
+        button_touch := TouchArea {
             clicked => { root.activated(); }
         }
     }
 
-    component StatusPill inherits Rectangle {
-        in property <string> label;
-        in property <string> value;
+    component RoundButton inherits Rectangle {
         in property <string> symbol;
-        in property <brush> accent: #0a84ff;
+        in property <brush> tint: #ffffff18;
+        callback activated();
 
-        background: #ffffff14;
-        border-radius: 28px;
+        background: button_touch.pressed ? #ffffff30 : tint;
+        border-radius: 21px;
         border-width: 1px;
-        border-color: #ffffff1b;
-
-        Rectangle {
-            x: 18px;
-            y: 17px;
-            width: 52px;
-            height: 52px;
-            border-radius: 26px;
-            background: accent;
-
-            Text {
-                text: symbol;
-                color: white;
-                font-size: 25px;
-                font-weight: 850;
-                horizontal-alignment: center;
-                vertical-alignment: center;
-            }
-        }
+        border-color: #ffffff1f;
 
         Text {
-            x: 88px;
-            y: 18px;
-            width: parent.width - 108px;
-            text: label;
-            color: #ffffff92;
-            font-size: 16px;
-            font-weight: 650;
-            overflow: elide;
-        }
-
-        Text {
-            x: 88px;
-            y: 43px;
-            width: parent.width - 108px;
-            text: value;
+            text: symbol;
             color: white;
             font-size: 25px;
             font-weight: 850;
-            overflow: elide;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+        }
+
+        button_touch := TouchArea {
+            clicked => { root.activated(); }
+        }
+    }
+
+    component BatteryMenuBar inherits Rectangle {
+        in property <int> percent: 0;
+        in property <bool> charging: false;
+
+        background: #ffffff18;
+        border-radius: 14px;
+        border-width: 1px;
+        border-color: #ffffff33;
+
+        Rectangle {
+            x: 7px;
+            y: 6px;
+            width: 43px;
+            height: 18px;
+            border-radius: 5px;
+            border-width: 2px;
+            border-color: #ffffffe8;
+            background: #00000000;
+
+            Rectangle {
+                x: 3px;
+                y: 3px;
+                width: 33px * root.percent / 100;
+                height: 8px;
+                border-radius: 3px;
+                background: root.charging ? #30d158 : root.percent < 20 ? #ff453a : #ffffffe8;
+            }
+        }
+
+        Rectangle {
+            x: 51px;
+            y: 12px;
+            width: 3px;
+            height: 6px;
+            border-radius: 2px;
+            background: #ffffffe8;
+        }
+
+        Text {
+            x: 62px;
+            width: parent.width - 72px;
+            height: parent.height;
+            text: root.percent + "%";
+            color: white;
+            font-size: 17px;
+            font-weight: 800;
+            vertical-alignment: center;
+            horizontal-alignment: right;
         }
     }
 
@@ -107,52 +131,80 @@ slint::slint! {
         in property <bool> charging: false;
 
         background: #ffffff12;
-        border-radius: 44px;
+        border-radius: 38px;
         border-width: 1px;
         border-color: #ffffff25;
 
         Rectangle {
-            x: 18px;
-            y: 18px;
-            width: parent.width - 36px;
-            height: parent.height - 36px;
-            border-radius: 32px;
+            x: 16px;
+            y: 16px;
+            width: parent.width - 32px;
+            height: parent.height - 32px;
+            border-radius: 28px;
             background: #07080dcc;
             border-width: 1px;
             border-color: #ffffff18;
 
             Rectangle {
-                x: 8px;
-                width: parent.width - 16px;
-                height: (parent.height - 16px) * root.percent / 100;
-                y: parent.height - 8px - self.height;
-                border-radius: 24px;
+                x: 7px;
+                width: parent.width - 14px;
+                height: (parent.height - 14px) * root.percent / 100;
+                y: parent.height - 7px - self.height;
+                border-radius: 22px;
                 background: root.charging ? #30d158 : root.percent < 20 ? #ff453a : #0a84ff;
             }
         }
     }
 
-    component PageDots inherits Rectangle {
-        in property <int> active-page: 0;
+    component StatusTile inherits Rectangle {
+        in property <string> label;
+        in property <string> value;
+        in property <string> symbol;
+        in property <brush> accent: #0a84ff;
 
-        background: #00000000;
+        background: #ffffff16;
+        border-radius: 30px;
+        border-width: 1px;
+        border-color: #ffffff1f;
 
         Rectangle {
-            x: 0px;
-            y: 0px;
-            width: root.active-page == 0 ? 30px : 10px;
-            height: 10px;
-            border-radius: 5px;
-            background: root.active-page == 0 ? #ffffffd6 : #ffffff52;
+            x: 24px;
+            y: 23px;
+            width: 58px;
+            height: 58px;
+            border-radius: 29px;
+            background: accent;
+
+            Text {
+                text: symbol;
+                color: white;
+                font-size: 27px;
+                font-weight: 850;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
         }
 
-        Rectangle {
-            x: 40px;
-            y: 0px;
-            width: root.active-page == 1 ? 30px : 10px;
-            height: 10px;
-            border-radius: 5px;
-            background: root.active-page == 1 ? #ffffffd6 : #ffffff52;
+        Text {
+            x: 104px;
+            y: 24px;
+            width: parent.width - 128px;
+            text: label;
+            color: #ffffff9c;
+            font-size: 17px;
+            font-weight: 700;
+            overflow: elide;
+        }
+
+        Text {
+            x: 104px;
+            y: 52px;
+            width: parent.width - 128px;
+            text: value;
+            color: white;
+            font-size: 28px;
+            font-weight: 850;
+            overflow: elide;
         }
     }
 
@@ -162,7 +214,7 @@ slint::slint! {
         background: #050507;
         title: "GlassDeck";
 
-        in-out property <int> active-page: 0;
+        in-out property <bool> control-center-open: false;
         in-out property <int> battery-percent: 0;
         in property <string> battery-state: "Inconnue";
         in property <bool> battery-charging: false;
@@ -178,6 +230,7 @@ slint::slint! {
         callback connect-wifi(string, string);
         callback toggle-wifi();
         callback set-brightness(float);
+        callback adjust-brightness(float);
         callback toggle-auto-brightness();
 
         Rectangle {
@@ -187,423 +240,466 @@ slint::slint! {
             height: 610px;
             border-radius: 305px;
             background: #0a84ff;
-            opacity: 0.22;
+            opacity: 0.20;
         }
 
         Rectangle {
-            x: 680px;
-            y: 390px;
-            width: 500px;
-            height: 500px;
-            border-radius: 250px;
+            x: 694px;
+            y: 402px;
+            width: 480px;
+            height: 480px;
+            border-radius: 240px;
             background: #30d158;
-            opacity: 0.12;
-        }
-
-        Rectangle {
-            x: root.active-page == 0 ? 0px : -1024px;
-            y: 0px;
-            width: 2048px;
-            height: 720px;
-            animate x { duration: 260ms; }
-
-            Rectangle {
-                x: 0px;
-                y: 0px;
-                width: 1024px;
-                height: 720px;
-                background: #00000000;
-
-                Text {
-                    x: 58px;
-                    y: 58px;
-                    text: "GlassDeck";
-                    color: white;
-                    font-size: 64px;
-                    font-weight: 900;
-                }
-
-                Text {
-                    x: 62px;
-                    y: 135px;
-                    text: "Surface";
-                    color: #ffffff9e;
-                    font-size: 28px;
-                    font-weight: 700;
-                }
-
-                GlassPanel {
-                    x: 58px;
-                    y: 220px;
-                    width: 430px;
-                    height: 300px;
-                    panel-background: #ffffff14;
-
-                    Text {
-                        x: 34px;
-                        y: 30px;
-                        text: battery-charging ? "En charge" : "Batterie";
-                        color: #ffffffa8;
-                        font-size: 24px;
-                        font-weight: 700;
-                    }
-
-                    Text {
-                        x: 32px;
-                        y: 72px;
-                        text: battery-percent + "%";
-                        color: white;
-                        font-size: 104px;
-                        font-weight: 900;
-                    }
-
-                    Text {
-                        x: 38px;
-                        y: 200px;
-                        width: 228px;
-                        text: battery-state;
-                        color: #ffffff9c;
-                        font-size: 24px;
-                        font-weight: 650;
-                        overflow: elide;
-                    }
-
-                    BatteryColumn {
-                        x: 306px;
-                        y: 34px;
-                        width: 82px;
-                        height: 232px;
-                        percent: battery-percent;
-                        charging: battery-charging;
-                    }
-                }
-
-                GlassPanel {
-                    x: 520px;
-                    y: 220px;
-                    width: 446px;
-                    height: 300px;
-                    panel-background: #ffffff12;
-
-                    Text {
-                        x: 34px;
-                        y: 30px;
-                        text: "Connectivité";
-                        color: white;
-                        font-size: 34px;
-                        font-weight: 850;
-                    }
-
-                    Text {
-                        x: 36px;
-                        y: 92px;
-                        width: parent.width - 72px;
-                        text: network-name;
-                        color: white;
-                        font-size: 42px;
-                        font-weight: 900;
-                        overflow: elide;
-                    }
-
-                    Text {
-                        x: 38px;
-                        y: 145px;
-                        width: parent.width - 76px;
-                        text: network-state;
-                        color: #ffffff9c;
-                        font-size: 24px;
-                        font-weight: 650;
-                    }
-
-                    Text {
-                        x: 38px;
-                        y: 205px;
-                        width: parent.width - 76px;
-                        text: ip-address;
-                        color: #ffffffd9;
-                        font-size: 31px;
-                        font-weight: 800;
-                    }
-                }
-
-                Text {
-                    x: 58px;
-                    y: 606px;
-                    width: 820px;
-                    text: status-message;
-                    color: #ffffff72;
-                    font-size: 19px;
-                    font-weight: 650;
-                    overflow: elide;
-                }
-            }
-
-            Rectangle {
-                x: 1024px;
-                y: 0px;
-                width: 1024px;
-                height: 720px;
-                background: #00000000;
-
-                Text {
-                    x: 50px;
-                    y: 40px;
-                    text: "Centre de contrôle";
-                    color: white;
-                    font-size: 46px;
-                    font-weight: 900;
-                }
-
-                Text {
-                    x: 52px;
-                    y: 98px;
-                    width: 560px;
-                    text: status-message;
-                    color: #ffffff8f;
-                    font-size: 19px;
-                    font-weight: 650;
-                    overflow: elide;
-                }
-
-                GlassPanel {
-                    x: 50px;
-                    y: 150px;
-                    width: 330px;
-                    height: 512px;
-                    panel-background: #ffffff14;
-
-                    Text {
-                        x: 32px;
-                        y: 28px;
-                        text: battery-charging ? "Charge" : "Batterie";
-                        color: #ffffff9c;
-                        font-size: 25px;
-                        font-weight: 700;
-                    }
-
-                    Text {
-                        x: 28px;
-                        y: 68px;
-                        text: battery-percent + "%";
-                        color: white;
-                        font-size: 82px;
-                        font-weight: 900;
-                    }
-
-                    BatteryColumn {
-                        x: 210px;
-                        y: 40px;
-                        width: 76px;
-                        height: 330px;
-                        percent: battery-percent;
-                        charging: battery-charging;
-                    }
-
-                    Text {
-                        x: 32px;
-                        y: 390px;
-                        width: parent.width - 64px;
-                        text: battery-state;
-                        color: #ffffff9c;
-                        font-size: 24px;
-                        font-weight: 650;
-                    }
-
-                    StatusPill {
-                        x: 28px;
-                        y: 436px;
-                        width: parent.width - 56px;
-                        height: 58px;
-                        label: "Alimentation";
-                        value: battery-charging ? "Branchée" : "Sur batterie";
-                        symbol: battery-charging ? "↯" : "▰";
-                        accent: battery-charging ? #30d158 : #0a84ff;
-                    }
-                }
-
-                GlassPanel {
-                    x: 410px;
-                    y: 150px;
-                    width: 564px;
-                    height: 246px;
-                    panel-background: #ffffff12;
-
-                    StatusPill {
-                        x: 26px;
-                        y: 24px;
-                        width: 512px;
-                        height: 88px;
-                        label: "Wi‑Fi";
-                        value: network-name;
-                        symbol: "⌁";
-                        accent: network-state == "Connecté" ? #30d158 : #ff9f0a;
-                    }
-
-                    Text {
-                        x: 36px;
-                        y: 130px;
-                        text: "Adresse IP";
-                        color: #ffffff91;
-                        font-size: 20px;
-                        font-weight: 700;
-                    }
-
-                    Text {
-                        x: 36px;
-                        y: 162px;
-                        width: parent.width - 72px;
-                        text: ip-address;
-                        color: white;
-                        font-size: 34px;
-                        font-weight: 850;
-                    }
-                }
-
-                GlassPanel {
-                    x: 410px;
-                    y: 420px;
-                    width: 272px;
-                    height: 242px;
-                    panel-background: #ffffff12;
-
-                    Text {
-                        x: 26px;
-                        y: 24px;
-                        text: "Wi‑Fi";
-                        color: white;
-                        font-size: 31px;
-                        font-weight: 850;
-                    }
-
-                    LineEdit {
-                        x: 24px;
-                        y: 78px;
-                        width: parent.width - 48px;
-                        height: 52px;
-                        placeholder-text: "Réseau";
-                        text <=> root.wifi-ssid;
-                    }
-
-                    LineEdit {
-                        x: 24px;
-                        y: 142px;
-                        width: parent.width - 48px;
-                        height: 52px;
-                        placeholder-text: "Mot de passe";
-                        input-type: InputType.password;
-                        text <=> root.wifi-password;
-                    }
-
-                    CapsuleButton {
-                        x: 24px;
-                        y: 204px;
-                        width: 106px;
-                        height: 52px;
-                        label: "Joindre";
-                        symbol: "+";
-                        tint: #0a84ff;
-                        activated => { root.connect-wifi(root.wifi-ssid, root.wifi-password); }
-                    }
-
-                    CapsuleButton {
-                        x: 144px;
-                        y: 204px;
-                        width: 104px;
-                        height: 52px;
-                        label: "Radio";
-                        symbol: "⌁";
-                        tint: #ffffff18;
-                        activated => { root.toggle-wifi(); }
-                    }
-                }
-
-                GlassPanel {
-                    x: 706px;
-                    y: 420px;
-                    width: 268px;
-                    height: 242px;
-                    panel-background: #ffffff12;
-
-                    Text {
-                        x: 26px;
-                        y: 24px;
-                        text: "Écran";
-                        color: white;
-                        font-size: 31px;
-                        font-weight: 850;
-                    }
-
-                    Text {
-                        x: 26px;
-                        y: 75px;
-                        text: round(root.brightness) + "%";
-                        color: white;
-                        font-size: 45px;
-                        font-weight: 900;
-                    }
-
-                    Slider {
-                        x: 24px;
-                        y: 134px;
-                        width: parent.width - 48px;
-                        height: 52px;
-                        minimum: 1;
-                        maximum: 100;
-                        value <=> root.brightness;
-                        changed => { root.set-brightness(self.value); }
-                    }
-
-                    Rectangle {
-                        x: 24px;
-                        y: 190px;
-                        width: parent.width - 48px;
-                        height: 40px;
-                        background: #00000000;
-
-                        Text {
-                            x: 0px;
-                            width: 148px;
-                            height: parent.height;
-                            text: "Auto";
-                            color: #ffffffc9;
-                            font-size: 20px;
-                            font-weight: 750;
-                            vertical-alignment: center;
-                        }
-
-                        Switch {
-                            x: parent.width - 56px;
-                            y: 2px;
-                            checked: root.auto-brightness;
-                            toggled => { root.toggle-auto-brightness(); }
-                        }
-                    }
-                }
-            }
-        }
-
-        PageDots {
-            x: 477px;
-            y: 670px;
-            width: 70px;
-            height: 10px;
-            active-page: root.active-page;
+            opacity: 0.11;
         }
 
         Rectangle {
             x: 0px;
-            y: 638px;
+            y: 0px;
             width: 1024px;
-            height: 82px;
+            height: 60px;
+            background: #06070acc;
+            border-width: 0px;
+
+            Text {
+                x: 28px;
+                width: 240px;
+                height: parent.height;
+                text: "GlassDeck";
+                color: white;
+                font-size: 22px;
+                font-weight: 850;
+                vertical-alignment: center;
+            }
+
+            Text {
+                x: 394px;
+                width: 236px;
+                height: parent.height;
+                text: "Surface";
+                color: #ffffffb8;
+                font-size: 18px;
+                font-weight: 700;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+
+            Text {
+                x: 696px;
+                width: 148px;
+                height: parent.height;
+                text: network-state == "Connecté" ? network-name : network-state;
+                color: #ffffffb8;
+                font-size: 17px;
+                font-weight: 700;
+                horizontal-alignment: right;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+
+            BatteryMenuBar {
+                x: 860px;
+                y: 14px;
+                width: 134px;
+                height: 32px;
+                percent: battery-percent;
+                charging: battery-charging;
+            }
+        }
+
+        Rectangle {
+            x: 0px;
+            y: 60px;
+            width: 1024px;
+            height: 660px;
             background: #00000000;
 
-            touch := TouchArea {
+            Text {
+                x: 58px;
+                y: 82px;
+                text: "GlassDeck";
+                color: white;
+                font-size: 68px;
+                font-weight: 900;
+            }
+
+            Text {
+                x: 62px;
+                y: 164px;
+                width: 630px;
+                text: "Surface";
+                color: #ffffff9e;
+                font-size: 32px;
+                font-weight: 700;
+            }
+
+            GlassPanel {
+                x: 58px;
+                y: 290px;
+                width: 908px;
+                height: 170px;
+                panel-background: #ffffff10;
+                corner-radius: 38px;
+
+                Text {
+                    x: 34px;
+                    y: 28px;
+                    text: status-message;
+                    color: #ffffffd4;
+                    font-size: 30px;
+                    font-weight: 800;
+                    overflow: elide;
+                }
+
+                Text {
+                    x: 34px;
+                    y: 84px;
+                    width: 820px;
+                    text: network-state == "Connecté" ? network-name + " • " + ip-address : network-state;
+                    color: #ffffff8c;
+                    font-size: 23px;
+                    font-weight: 650;
+                    overflow: elide;
+                }
+            }
+        }
+
+        Rectangle {
+            x: 0px;
+            y: 0px;
+            width: 1024px;
+            height: 96px;
+            background: #00000000;
+
+            top_swipe := TouchArea {
                 moved => {
-                    if (self.mouse-x - self.pressed-x < -120px) {
-                        root.active-page = 1;
+                    if (self.mouse-y - self.pressed-y > 72px) {
+                        root.control-center-open = true;
                     }
-                    if (self.mouse-x - self.pressed-x > 120px) {
-                        root.active-page = 0;
+                }
+            }
+        }
+
+        Rectangle {
+            x: 0px;
+            y: root.control-center-open ? 0px : -720px;
+            width: 1024px;
+            height: 720px;
+            background: #050507e8;
+            animate y { duration: 260ms; }
+
+            Rectangle {
+                x: -90px;
+                y: -160px;
+                width: 520px;
+                height: 520px;
+                border-radius: 260px;
+                background: #0a84ff;
+                opacity: 0.24;
+            }
+
+            Rectangle {
+                x: 698px;
+                y: 410px;
+                width: 420px;
+                height: 420px;
+                border-radius: 210px;
+                background: #30d158;
+                opacity: 0.13;
+            }
+
+            Text {
+                x: 50px;
+                y: 42px;
+                text: "Centre de contrôle";
+                color: white;
+                font-size: 48px;
+                font-weight: 900;
+            }
+
+            Text {
+                x: 54px;
+                y: 104px;
+                width: 620px;
+                text: status-message;
+                color: #ffffff93;
+                font-size: 20px;
+                font-weight: 650;
+                overflow: elide;
+            }
+
+            GlassPanel {
+                x: 50px;
+                y: 154px;
+                width: 330px;
+                height: 506px;
+                panel-background: #ffffff16;
+                corner-radius: 38px;
+
+                Text {
+                    x: 32px;
+                    y: 28px;
+                    text: battery-charging ? "Charge" : "Batterie";
+                    color: #ffffff9c;
+                    font-size: 25px;
+                    font-weight: 700;
+                }
+
+                Text {
+                    x: 28px;
+                    y: 68px;
+                    text: battery-percent + "%";
+                    color: white;
+                    font-size: 82px;
+                    font-weight: 900;
+                }
+
+                BatteryColumn {
+                    x: 210px;
+                    y: 42px;
+                    width: 76px;
+                    height: 324px;
+                    percent: battery-percent;
+                    charging: battery-charging;
+                }
+
+                Text {
+                    x: 32px;
+                    y: 388px;
+                    width: parent.width - 64px;
+                    text: battery-state;
+                    color: #ffffff9c;
+                    font-size: 24px;
+                    font-weight: 650;
+                }
+
+                Text {
+                    x: 32px;
+                    y: 436px;
+                    width: parent.width - 64px;
+                    text: battery-charging ? "Branchée" : "Sur batterie";
+                    color: #ffffffd8;
+                    font-size: 24px;
+                    font-weight: 800;
+                }
+            }
+
+            GlassPanel {
+                x: 410px;
+                y: 154px;
+                width: 564px;
+                height: 246px;
+                panel-background: #ffffff14;
+                corner-radius: 38px;
+
+                StatusTile {
+                    x: 26px;
+                    y: 24px;
+                    width: 512px;
+                    height: 104px;
+                    label: "Wi‑Fi";
+                    value: network-name;
+                    symbol: "⌁";
+                    accent: network-state == "Connecté" ? #30d158 : #ff9f0a;
+                }
+
+                Text {
+                    x: 36px;
+                    y: 148px;
+                    text: "Adresse IP";
+                    color: #ffffff91;
+                    font-size: 20px;
+                    font-weight: 700;
+                }
+
+                Text {
+                    x: 36px;
+                    y: 180px;
+                    width: parent.width - 72px;
+                    text: ip-address;
+                    color: white;
+                    font-size: 34px;
+                    font-weight: 850;
+                }
+            }
+
+            GlassPanel {
+                x: 410px;
+                y: 424px;
+                width: 250px;
+                height: 236px;
+                panel-background: #ffffff14;
+                corner-radius: 34px;
+
+                Text {
+                    x: 26px;
+                    y: 22px;
+                    text: "Wi‑Fi";
+                    color: white;
+                    font-size: 31px;
+                    font-weight: 850;
+                }
+
+                LineEdit {
+                    x: 24px;
+                    y: 72px;
+                    width: parent.width - 48px;
+                    height: 48px;
+                    placeholder-text: "Réseau";
+                    text <=> root.wifi-ssid;
+                }
+
+                LineEdit {
+                    x: 24px;
+                    y: 130px;
+                    width: parent.width - 48px;
+                    height: 48px;
+                    placeholder-text: "Mot de passe";
+                    input-type: InputType.password;
+                    text <=> root.wifi-password;
+                }
+
+                CapsuleButton {
+                    x: 24px;
+                    y: 188px;
+                    width: 96px;
+                    height: 40px;
+                    label: "Joindre";
+                    symbol: "+";
+                    tint: #0a84ff;
+                    activated => { root.connect-wifi(root.wifi-ssid, root.wifi-password); }
+                }
+
+                CapsuleButton {
+                    x: 132px;
+                    y: 188px;
+                    width: 94px;
+                    height: 40px;
+                    label: "Radio";
+                    symbol: "⌁";
+                    tint: #ffffff18;
+                    activated => { root.toggle-wifi(); }
+                }
+            }
+
+            GlassPanel {
+                x: 684px;
+                y: 424px;
+                width: 290px;
+                height: 236px;
+                panel-background: #ffffff14;
+                corner-radius: 34px;
+
+                Text {
+                    x: 26px;
+                    y: 22px;
+                    text: "Écran";
+                    color: white;
+                    font-size: 31px;
+                    font-weight: 850;
+                }
+
+                Text {
+                    x: 26px;
+                    y: 72px;
+                    text: round(root.brightness) + "%";
+                    color: white;
+                    font-size: 45px;
+                    font-weight: 900;
+                }
+
+                RoundButton {
+                    x: 166px;
+                    y: 72px;
+                    width: 42px;
+                    height: 42px;
+                    symbol: "−";
+                    tint: #ffffff18;
+                    activated => { root.adjust-brightness(-10); }
+                }
+
+                RoundButton {
+                    x: 222px;
+                    y: 72px;
+                    width: 42px;
+                    height: 42px;
+                    symbol: "+";
+                    tint: #ffffff18;
+                    activated => { root.adjust-brightness(10); }
+                }
+
+                Rectangle {
+                    x: 24px;
+                    y: 126px;
+                    width: parent.width - 48px;
+                    height: 18px;
+                    border-radius: 9px;
+                    background: #ffffff24;
+
+                    Rectangle {
+                        x: 0px;
+                        y: 0px;
+                        width: parent.width * root.brightness / 100;
+                        height: parent.height;
+                        border-radius: 9px;
+                        background: #ffffffd8;
+                    }
+                }
+
+                Slider {
+                    x: 24px;
+                    y: 148px;
+                    width: parent.width - 48px;
+                    height: 52px;
+                    minimum: 1;
+                    maximum: 100;
+                    value <=> root.brightness;
+                    changed => { root.set-brightness(self.value); }
+                }
+
+                Rectangle {
+                    x: 24px;
+                    y: 194px;
+                    width: parent.width - 48px;
+                    height: 40px;
+                    background: #00000000;
+
+                    Text {
+                        x: 0px;
+                        width: 148px;
+                        height: parent.height;
+                        text: "Auto";
+                        color: #ffffffc9;
+                        font-size: 20px;
+                        font-weight: 750;
+                        vertical-alignment: center;
+                    }
+
+                    Switch {
+                        x: parent.width - 56px;
+                        y: 2px;
+                        checked: root.auto-brightness;
+                        toggled => { root.toggle-auto-brightness(); }
+                    }
+                }
+            }
+
+            Rectangle {
+                x: 462px;
+                y: 690px;
+                width: 100px;
+                height: 6px;
+                border-radius: 3px;
+                background: #ffffff66;
+
+                handle_swipe := TouchArea {
+                    clicked => {
+                        root.control-center-open = false;
+                    }
+                    moved => {
+                        if (self.mouse-y - self.pressed-y < -34px) {
+                            root.control-center-open = false;
+                        }
                     }
                 }
             }

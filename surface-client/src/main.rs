@@ -11,13 +11,13 @@ fn main() -> Result<(), slint::PlatformError> {
 
     let ui = MainWindow::new()?;
     apply_snapshot(&ui, read_system_snapshot("Prêt"));
-    register_refresh_timer(&ui);
+    let _refresh_timer = register_refresh_timer(&ui);
     register_actions(&ui);
 
     ui.run()
 }
 
-fn register_refresh_timer(ui: &MainWindow) {
+fn register_refresh_timer(ui: &MainWindow) -> Timer {
     let weak_ui = ui.as_weak();
     let timer = Timer::default();
     timer.start(TimerMode::Repeated, Duration::from_secs(1), move || {
@@ -25,6 +25,7 @@ fn register_refresh_timer(ui: &MainWindow) {
             apply_snapshot(&ui, read_system_snapshot("Synchronisé"));
         }
     });
+    timer
 }
 
 fn register_actions(ui: &MainWindow) {
@@ -36,6 +37,19 @@ fn register_actions(ui: &MainWindow) {
         };
 
         if let Some(ui) = weak_ui.upgrade() {
+            apply_snapshot(&ui, read_system_snapshot(&message));
+        }
+    });
+
+    let weak_ui = ui.as_weak();
+    ui.on_adjust_brightness(move |delta| {
+        if let Some(ui) = weak_ui.upgrade() {
+            let target = (ui.get_brightness() + delta).clamp(1.0, 100.0);
+            let message = match brightness::set_percent(target) {
+                Ok(()) => "Luminosité mise à jour".to_string(),
+                Err(err) => format!("Luminosité: {err}"),
+            };
+
             apply_snapshot(&ui, read_system_snapshot(&message));
         }
     });
