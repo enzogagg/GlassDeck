@@ -46,19 +46,6 @@ fn register_actions(ui: &MainWindow) {
     });
 
     let weak_ui = ui.as_weak();
-    ui.on_adjust_brightness(move |delta| {
-        if let Some(ui) = weak_ui.upgrade() {
-            let target = (ui.get_brightness() + delta).clamp(1.0, 100.0);
-            let message = match brightness::set_percent(target) {
-                Ok(()) => "Luminosité mise à jour".to_string(),
-                Err(err) => format!("Luminosité: {err}"),
-            };
-
-            apply_snapshot(&ui, read_system_snapshot(&message));
-        }
-    });
-
-    let weak_ui = ui.as_weak();
     ui.on_toggle_auto_brightness(move || {
         let message = match brightness::set_auto(!brightness::read_auto()) {
             Ok(true) => "Luminosité auto activée".to_string(),
