@@ -67,6 +67,14 @@ If the Surface must start GlassDeck before a manual login, install with:
 The Linux KMS backend may require the Surface user to have device access through
 groups such as `video`, `input`, or `render`, depending on the distribution.
 
+Runtime features use standard Linux interfaces:
+
+- Battery: `/sys/class/power_supply`.
+- Network and Wi-Fi configuration: `nmcli` from NetworkManager.
+- IP address: `ip` from iproute2.
+- Manual brightness: `/sys/class/backlight`, with `brightnessctl` as fallback.
+- Automatic brightness: Linux IIO ambient light sensor under `/sys/bus/iio/devices`.
+
 Useful service commands:
 
 ```sh
