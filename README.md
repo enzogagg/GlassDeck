@@ -70,7 +70,7 @@ groups such as `video`, `input`, or `render`, depending on the distribution.
 Runtime features use standard Linux interfaces:
 
 - Battery: `/sys/class/power_supply`.
-- Network and Wi-Fi configuration: `nmcli` from NetworkManager.
+- Network status: `nmcli` from NetworkManager.
 - IP address: `ip` from iproute2.
 - Manual brightness: `/sys/class/backlight`, with `brightnessctl` as fallback.
 - Automatic brightness: Linux IIO ambient light sensor under `/sys/bus/iio/devices`.

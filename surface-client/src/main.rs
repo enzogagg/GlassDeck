@@ -3,7 +3,7 @@ mod ui;
 
 use slint::{ComponentHandle, SharedString, Timer, TimerMode};
 use std::time::Duration;
-use system::{brightness, network, read_system_snapshot, SystemSnapshot};
+use system::{brightness, read_system_snapshot, SystemSnapshot};
 use ui::MainWindow;
 
 fn main() -> Result<(), slint::PlatformError> {
@@ -29,6 +29,10 @@ fn register_refresh_timer(ui: &MainWindow) -> Timer {
 }
 
 fn register_actions(ui: &MainWindow) {
+    ui.on_request_exit(|| {
+        std::process::exit(0);
+    });
+
     let weak_ui = ui.as_weak();
     ui.on_set_brightness(move |value| {
         let message = match brightness::set_percent(value) {
@@ -42,48 +46,11 @@ fn register_actions(ui: &MainWindow) {
     });
 
     let weak_ui = ui.as_weak();
-    ui.on_adjust_brightness(move |delta| {
-        if let Some(ui) = weak_ui.upgrade() {
-            let target = (ui.get_brightness() + delta).clamp(1.0, 100.0);
-            let message = match brightness::set_percent(target) {
-                Ok(()) => "Luminosité mise à jour".to_string(),
-                Err(err) => format!("Luminosité: {err}"),
-            };
-
-            apply_snapshot(&ui, read_system_snapshot(&message));
-        }
-    });
-
-    let weak_ui = ui.as_weak();
     ui.on_toggle_auto_brightness(move || {
         let message = match brightness::set_auto(!brightness::read_auto()) {
             Ok(true) => "Luminosité auto activée".to_string(),
             Ok(false) => "Luminosité auto désactivée".to_string(),
             Err(err) => format!("Luminosité auto: {err}"),
-        };
-
-        if let Some(ui) = weak_ui.upgrade() {
-            apply_snapshot(&ui, read_system_snapshot(&message));
-        }
-    });
-
-    let weak_ui = ui.as_weak();
-    ui.on_toggle_wifi(move || {
-        let message = match network::toggle_wifi() {
-            Ok(message) => message,
-            Err(err) => format!("Wi‑Fi: {err}"),
-        };
-
-        if let Some(ui) = weak_ui.upgrade() {
-            apply_snapshot(&ui, read_system_snapshot(&message));
-        }
-    });
-
-    let weak_ui = ui.as_weak();
-    ui.on_connect_wifi(move |ssid, password| {
-        let message = match network::connect_wifi(ssid.as_str(), password.as_str()) {
-            Ok(()) => format!("Connexion Wi‑Fi vers {ssid}"),
-            Err(err) => format!("Wi‑Fi: {err}"),
         };
 
         if let Some(ui) = weak_ui.upgrade() {

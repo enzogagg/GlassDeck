@@ -1,5 +1,5 @@
 slint::slint! {
-    import { LineEdit, Slider, Switch } from "std-widgets.slint";
+    import { Slider, Switch } from "std-widgets.slint";
 
     component GlassPanel inherits Rectangle {
         in property <brush> panel-background: #1c1c1ecc;
@@ -44,30 +44,6 @@ slint::slint! {
             font-weight: 750;
             vertical-alignment: center;
             overflow: elide;
-        }
-
-        button_touch := TouchArea {
-            clicked => { root.activated(); }
-        }
-    }
-
-    component RoundButton inherits Rectangle {
-        in property <string> symbol;
-        in property <brush> tint: #ffffff18;
-        callback activated();
-
-        background: button_touch.pressed ? #ffffff30 : tint;
-        border-radius: 21px;
-        border-width: 1px;
-        border-color: #ffffff1f;
-
-        Text {
-            text: symbol;
-            color: white;
-            font-size: 25px;
-            font-weight: 850;
-            horizontal-alignment: center;
-            vertical-alignment: center;
         }
 
         button_touch := TouchArea {
@@ -123,6 +99,30 @@ slint::slint! {
             font-weight: 800;
             vertical-alignment: center;
             horizontal-alignment: right;
+        }
+    }
+
+    component IconButton inherits Rectangle {
+        in property <string> symbol;
+        in property <brush> tint: #ffffff14;
+        callback activated();
+
+        background: icon_touch.pressed ? #ffffff2b : tint;
+        border-radius: 18px;
+        border-width: 1px;
+        border-color: #ffffff20;
+
+        Text {
+            text: symbol;
+            color: white;
+            font-size: 20px;
+            font-weight: 850;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+        }
+
+        icon_touch := TouchArea {
+            clicked => { root.activated(); }
         }
     }
 
@@ -224,14 +224,9 @@ slint::slint! {
         in-out property <float> brightness: 0;
         in property <bool> auto-brightness: false;
         in property <string> status-message: "Prêt";
-        in-out property <string> wifi-ssid: "";
-        in-out property <string> wifi-password: "";
-
-        callback connect-wifi(string, string);
-        callback toggle-wifi();
         callback set-brightness(float);
-        callback adjust-brightness(float);
         callback toggle-auto-brightness();
+        callback request-exit();
 
         Rectangle {
             x: -170px;
@@ -286,7 +281,7 @@ slint::slint! {
 
             Text {
                 x: 696px;
-                width: 148px;
+                width: 104px;
                 height: parent.height;
                 text: network-state == "Connecté" ? network-name : network-state;
                 color: #ffffffb8;
@@ -295,6 +290,16 @@ slint::slint! {
                 horizontal-alignment: right;
                 vertical-alignment: center;
                 overflow: elide;
+            }
+
+            IconButton {
+                x: 812px;
+                y: 12px;
+                width: 36px;
+                height: 36px;
+                symbol: "⏻";
+                tint: #ffffff10;
+                activated => { root.request-exit(); }
             }
 
             BatteryMenuBar {
@@ -333,34 +338,15 @@ slint::slint! {
                 font-weight: 700;
             }
 
-            GlassPanel {
-                x: 58px;
-                y: 290px;
-                width: 908px;
-                height: 170px;
-                panel-background: #ffffff10;
-                corner-radius: 38px;
-
-                Text {
-                    x: 34px;
-                    y: 28px;
-                    text: status-message;
-                    color: #ffffffd4;
-                    font-size: 30px;
-                    font-weight: 800;
-                    overflow: elide;
-                }
-
-                Text {
-                    x: 34px;
-                    y: 84px;
-                    width: 820px;
-                    text: network-state == "Connecté" ? network-name + " • " + ip-address : network-state;
-                    color: #ffffff8c;
-                    font-size: 23px;
-                    font-weight: 650;
-                    overflow: elide;
-                }
+            Text {
+                x: 64px;
+                y: 520px;
+                width: 680px;
+                text: ip-address;
+                color: #ffffff52;
+                font-size: 22px;
+                font-weight: 650;
+                overflow: elide;
             }
         }
 
@@ -368,12 +354,15 @@ slint::slint! {
             x: 0px;
             y: 0px;
             width: 1024px;
-            height: 96px;
+            height: 130px;
             background: #00000000;
 
             top_swipe := TouchArea {
+                clicked => {
+                    root.control-center-open = true;
+                }
                 moved => {
-                    if (self.mouse-y - self.pressed-y > 72px) {
+                    if (self.mouse-y - self.pressed-y > 34px) {
                         root.control-center-open = true;
                     }
                 }
@@ -420,12 +409,23 @@ slint::slint! {
             Text {
                 x: 54px;
                 y: 104px;
-                width: 620px;
+                width: 520px;
                 text: status-message;
                 color: #ffffff93;
                 font-size: 20px;
                 font-weight: 650;
                 overflow: elide;
+            }
+
+            CapsuleButton {
+                x: 806px;
+                y: 44px;
+                width: 168px;
+                height: 52px;
+                label: "Quitter";
+                symbol: "⏻";
+                tint: #ffffff18;
+                activated => { root.request-exit(); }
             }
 
             GlassPanel {
@@ -540,45 +540,37 @@ slint::slint! {
                     font-weight: 850;
                 }
 
-                LineEdit {
-                    x: 24px;
-                    y: 72px;
-                    width: parent.width - 48px;
-                    height: 48px;
-                    placeholder-text: "Réseau";
-                    text <=> root.wifi-ssid;
+                Text {
+                    x: 26px;
+                    y: 78px;
+                    width: parent.width - 52px;
+                    text: network-name;
+                    color: white;
+                    font-size: 28px;
+                    font-weight: 850;
+                    overflow: elide;
                 }
 
-                LineEdit {
-                    x: 24px;
-                    y: 130px;
-                    width: parent.width - 48px;
-                    height: 48px;
-                    placeholder-text: "Mot de passe";
-                    input-type: InputType.password;
-                    text <=> root.wifi-password;
+                Text {
+                    x: 26px;
+                    y: 120px;
+                    width: parent.width - 52px;
+                    text: network-state;
+                    color: #ffffffa0;
+                    font-size: 20px;
+                    font-weight: 700;
+                    overflow: elide;
                 }
 
-                CapsuleButton {
-                    x: 24px;
-                    y: 188px;
-                    width: 96px;
-                    height: 40px;
-                    label: "Joindre";
-                    symbol: "+";
-                    tint: #0a84ff;
-                    activated => { root.connect-wifi(root.wifi-ssid, root.wifi-password); }
-                }
-
-                CapsuleButton {
-                    x: 132px;
-                    y: 188px;
-                    width: 94px;
-                    height: 40px;
-                    label: "Radio";
-                    symbol: "⌁";
-                    tint: #ffffff18;
-                    activated => { root.toggle-wifi(); }
+                Text {
+                    x: 26px;
+                    y: 174px;
+                    width: parent.width - 52px;
+                    text: ip-address;
+                    color: #ffffffd8;
+                    font-size: 23px;
+                    font-weight: 800;
+                    overflow: elide;
                 }
             }
 
@@ -604,53 +596,15 @@ slint::slint! {
                     y: 72px;
                     text: round(root.brightness) + "%";
                     color: white;
-                    font-size: 45px;
+                    font-size: 50px;
                     font-weight: 900;
-                }
-
-                RoundButton {
-                    x: 166px;
-                    y: 72px;
-                    width: 42px;
-                    height: 42px;
-                    symbol: "−";
-                    tint: #ffffff18;
-                    activated => { root.adjust-brightness(-10); }
-                }
-
-                RoundButton {
-                    x: 222px;
-                    y: 72px;
-                    width: 42px;
-                    height: 42px;
-                    symbol: "+";
-                    tint: #ffffff18;
-                    activated => { root.adjust-brightness(10); }
-                }
-
-                Rectangle {
-                    x: 24px;
-                    y: 126px;
-                    width: parent.width - 48px;
-                    height: 18px;
-                    border-radius: 9px;
-                    background: #ffffff24;
-
-                    Rectangle {
-                        x: 0px;
-                        y: 0px;
-                        width: parent.width * root.brightness / 100;
-                        height: parent.height;
-                        border-radius: 9px;
-                        background: #ffffffd8;
-                    }
                 }
 
                 Slider {
                     x: 24px;
-                    y: 148px;
+                    y: 132px;
                     width: parent.width - 48px;
-                    height: 52px;
+                    height: 58px;
                     minimum: 1;
                     maximum: 100;
                     value <=> root.brightness;
@@ -685,19 +639,30 @@ slint::slint! {
             }
 
             Rectangle {
-                x: 462px;
-                y: 690px;
-                width: 100px;
-                height: 6px;
-                border-radius: 3px;
-                background: #ffffff66;
+                x: 402px;
+                y: 660px;
+                width: 220px;
+                height: 58px;
+                border-radius: 29px;
+                background: #ffffff10;
+                border-width: 1px;
+                border-color: #ffffff20;
+
+                Rectangle {
+                    x: 60px;
+                    y: 13px;
+                    width: 100px;
+                    height: 6px;
+                    border-radius: 3px;
+                    background: #ffffff70;
+                }
 
                 handle_swipe := TouchArea {
                     clicked => {
                         root.control-center-open = false;
                     }
                     moved => {
-                        if (self.mouse-y - self.pressed-y < -34px) {
+                        if (self.mouse-y - self.pressed-y < -24px) {
                             root.control-center-open = false;
                         }
                     }
