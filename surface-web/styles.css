@@ -60,7 +60,7 @@ button {
   position: relative;
   z-index: 10;
   display: grid;
-  grid-template-rows: 38px 1fr;
+  grid-template-rows: 64px 1fr;
   min-height: 100%;
 }
 
@@ -68,9 +68,9 @@ button {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  height: 38px;
-  padding: 0 14px;
+  gap: 20px;
+  height: 64px;
+  padding: 0 20px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(20, 21, 24, 0.68);
   backdrop-filter: blur(24px) saturate(170%);
@@ -82,7 +82,7 @@ button {
 .menu-right {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
   min-width: 0;
 }
 
@@ -97,12 +97,12 @@ button {
 .brand-button {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  min-height: 30px;
-  padding: 0 10px;
-  border-radius: 8px;
+  gap: 10px;
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 10px;
   background: transparent;
-  font-size: 0.92rem;
+  font-size: 1.1rem;
   font-weight: 720;
 }
 
@@ -115,21 +115,21 @@ button {
 
 .brand-mark {
   color: var(--blue);
-  font-size: 0.76rem;
+  font-size: 1rem;
   line-height: 1;
 }
 
 .status-dot {
-  width: 9px;
-  height: 9px;
+  width: 12px;
+  height: 12px;
   border-radius: 999px;
   background: var(--orange);
-  box-shadow: 0 0 0 3px rgba(255, 159, 10, 0.16);
+  box-shadow: 0 0 0 4px rgba(255, 159, 10, 0.16);
 }
 
 .status-dot.is-online {
   background: var(--green);
-  box-shadow: 0 0 0 3px rgba(48, 209, 88, 0.16);
+  box-shadow: 0 0 0 4px rgba(48, 209, 88, 0.16);
 }
 
 .status-dot.is-offline {
@@ -141,13 +141,13 @@ button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: 26px;
-  max-width: 190px;
-  padding: 0 9px;
+  height: 40px;
+  max-width: 240px;
+  padding: 0 14px;
   overflow: hidden;
-  border-radius: 8px;
+  border-radius: 10px;
   color: rgba(245, 245, 247, 0.9);
-  font-size: 0.82rem;
+  font-size: 1.05rem;
   font-weight: 640;
   letter-spacing: 0;
   text-overflow: ellipsis;
@@ -161,9 +161,9 @@ button {
 .control-button {
   display: grid;
   place-items: center;
-  width: 34px;
-  height: 28px;
-  border-radius: 9px;
+  width: 48px;
+  height: 42px;
+  border-radius: 10px;
   background: rgba(255, 255, 255, 0.08);
 }
 
@@ -174,16 +174,16 @@ button {
 .toggle-icon {
   position: relative;
   display: block;
-  width: 18px;
-  height: 12px;
+  width: 22px;
+  height: 14px;
 }
 
 .toggle-icon::before,
 .toggle-icon::after {
   position: absolute;
   left: 0;
-  width: 18px;
-  height: 5px;
+  width: 22px;
+  height: 6px;
   border-radius: 999px;
   background: rgba(245, 245, 247, 0.92);
   content: "";
@@ -203,7 +203,7 @@ button {
 
 .control-center {
   position: fixed;
-  top: 50px;
+  top: 76px;
   right: 14px;
   z-index: 30;
   width: min(390px, calc(100vw - 28px));
@@ -329,10 +329,24 @@ input[type="range"] {
   font-weight: 700;
 }
 
+.quit-button {
+  background: rgba(255, 69, 58, 0.15);
+  color: var(--red);
+}
+
+.quit-button:active {
+  background: rgba(255, 69, 58, 0.25);
+}
+
 @media (max-width: 720px) {
   .menu-bar {
-    gap: 8px;
-    padding: 0 8px;
+    gap: 12px;
+    padding: 0 12px;
+    height: 56px;
+  }
+
+  .desktop {
+    grid-template-rows: 56px 1fr;
   }
 
   .brand-button span:last-child,
@@ -342,13 +356,14 @@ input[type="range"] {
 
   .menu-chip,
   .clock {
+    height: 36px;
     max-width: 130px;
-    padding: 0 7px;
-    font-size: 0.78rem;
+    padding: 0 10px;
+    font-size: 0.95rem;
   }
 
   .control-center {
-    top: 46px;
+    top: 64px;
     right: 8px;
     width: calc(100vw - 16px);
   }

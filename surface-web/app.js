@@ -30,6 +30,8 @@ const elements = {
   ipDetail: document.querySelector("#ip-detail"),
   machineIp: document.querySelector("#machine-ip"),
   refreshButton: document.querySelector("#refresh-button"),
+  surfaceIp: document.querySelector("#surface-ip"),
+  quitButton: document.querySelector("#quit-button"),
   volumeSlider: document.querySelector("#volume-slider"),
   volumeValue: document.querySelector("#volume-value"),
 };
@@ -91,9 +93,13 @@ function updateMachineInfo() {
 function updateBatteryDisplay(battery) {
   const percent = Math.round(battery.level * 100);
   const charging = battery.charging ? "En charge" : "Sur batterie";
-  elements.batteryStatus.textContent = `${percent}%`;
+  elements.batteryStatus.textContent = `🔋 ${percent}%`;
   elements.batteryDetail.textContent = `${percent}%`;
   elements.batteryExtra.textContent = charging;
+}
+
+function updateSurfaceIp() {
+  elements.surfaceIp.textContent = "192.168.10.57";
 }
 
 async function initBattery() {
@@ -180,6 +186,14 @@ elements.volumeSlider.addEventListener("input", (event) => {
   applyVolume(Number(event.target.value));
 });
 
+elements.quitButton.addEventListener("click", () => {
+  window.close();
+  setTimeout(() => {
+    document.body.innerHTML =
+      '<div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:20px;text-align:center;"><h1>GlassDeck Fermé</h1><p>Vous pouvez maintenant éteindre la Surface.</p></div>';
+  }, 300);
+});
+
 document.querySelectorAll("[data-action]").forEach((button) => {
   button.addEventListener("click", () => executeAction(button.dataset.action));
 });
@@ -194,6 +208,7 @@ document.addEventListener("click", (event) => {
 });
 
 updateMachineInfo();
+updateSurfaceIp();
 updateClock();
 applyBrightness(state.brightness);
 applyVolume(state.volume);

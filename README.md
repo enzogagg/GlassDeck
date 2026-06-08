@@ -57,6 +57,34 @@ On the Surface, run the UI full-screen:
 chromium --kiosk http://127.0.0.1:8090
 ```
 
+## Service Installation (Surface)
+
+GlassDeck includes a modular system to install services that launch automatically on boot.
+
+### 1. Auto-start the Web Interface
+
+To make the kiosk UI launch automatically when the Surface boots:
+
+```bash
+./scripts/install-ui.sh
+```
+
+### 2. Enable Boot Persistence (Background Services)
+
+A service is a directory containing a `start.sh` script. To install it:
+
+```bash
+./scripts/install-service.sh ./services/my-addon
+```
+
+This creates a `systemd` user service named `glassdeck-my-addon`.
+
+### 3. Manage Services
+
+- **Status:** `systemctl --user status glassdeck-<name>`
+- **Logs:** `journalctl --user -u glassdeck-<name> -f`
+- **Restart:** `systemctl --user restart glassdeck-<name>`
+
 ## Mac Daemon
 
 The daemon listens on `127.0.0.1:7878` by default. Override the bind setting
