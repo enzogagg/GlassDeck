@@ -57,6 +57,27 @@ On the Surface, run the UI full-screen:
 chromium --kiosk http://127.0.0.1:8090
 ```
 
+## Bluetooth Connectivity (Offline Mode)
+
+You can use GlassDeck without a Wi-Fi network by using Bluetooth PAN (Personal Area Network).
+
+### 1. On your Mac
+- Go to **System Settings > General > Sharing**.
+- Enable **Internet Sharing**.
+- Share your connection from: (Any) to computers using: **Bluetooth PAN**.
+- In **System Settings > Bluetooth**, ensure the Surface is paired.
+
+### 2. On the Surface
+- Pair with the Mac via Bluetooth.
+- Connect to the Mac's Network service (PAN).
+- The Mac will typically act as the gateway (e.g., `192.168.2.1`).
+
+### 3. Update the Surface UI
+Set the daemon URL to the Mac's Bluetooth IP:
+```js
+localStorage.setItem("glassdeck-daemon-url", "http://192.168.2.1:7878");
+```
+
 ## Service Installation (Surface)
 
 GlassDeck includes a modular system to install services that launch automatically on boot.

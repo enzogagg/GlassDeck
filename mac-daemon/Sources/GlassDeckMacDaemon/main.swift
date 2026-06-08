@@ -12,9 +12,9 @@ struct DaemonConfig {
 
     static func fromEnvironment() -> Self {
         let rawValue = ProcessInfo.processInfo.environment["GLASSDECK_MAC_DAEMON_ADDR"]
-            ?? "127.0.0.1:7878"
+            ?? "0.0.0.0:7878"
         let parts = rawValue.split(separator: ":", maxSplits: 1).map(String.init)
-        let host = parts.first?.isEmpty == false ? parts[0] : "127.0.0.1"
+        let host = parts.first?.isEmpty == false ? parts[0] : "0.0.0.0"
         let port = parts.count > 1 ? UInt16(parts[1]) ?? 7878 : 7878
         return Self(host: host, port: port)
     }
