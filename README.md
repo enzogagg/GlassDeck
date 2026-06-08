@@ -41,7 +41,7 @@ Run the Mac daemon:
 Run the Surface web UI locally:
 
 ```sh
-./scripts/run-surface-web.sh
+./scripts/run-surface.sh
 ```
 
 Then open:
@@ -53,7 +53,7 @@ http://127.0.0.1:8090
 On the Surface, run the UI full-screen:
 
 ```sh
-./scripts/run-surface-web.sh
+./scripts/run-surface.sh
 chromium --kiosk http://127.0.0.1:8090
 ```
 

@@ -79,6 +79,7 @@ jobs:
       - name: Validate shell scripts
         run: |
           sh -n scripts/run-mac-daemon.sh
+          sh -n scripts/run-surface.sh
           sh -n scripts/run-surface-web.sh
 
   swift:

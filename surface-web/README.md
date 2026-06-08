@@ -10,7 +10,7 @@ horizontal system bar and a floating control center.
 From the repository root:
 
 ```sh
-./scripts/run-surface-web.sh
+./scripts/run-surface.sh
 ```
 
 Open:
@@ -30,7 +30,7 @@ python3 -m http.server 8090
 On the Surface:
 
 ```sh
-./scripts/run-surface-web.sh
+./scripts/run-surface.sh
 chromium --kiosk http://127.0.0.1:8090
 ```
 
