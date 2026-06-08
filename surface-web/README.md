@@ -2,43 +2,54 @@
 
 Touch-first Surface interface for GlassDeck.
 
-This app is intentionally static for now: it can run from a local file or from a
-tiny HTTP server, then be launched full-screen by Chromium on the Surface.
+The current home screen is intentionally blank. It only shows a macOS-inspired
+horizontal system bar and a floating control center.
 
 ## Run Locally
 
-From this directory:
+From the repository root:
 
 ```sh
-python3 -m http.server 8080
+./scripts/run-surface-web.sh
 ```
 
 Open:
 
 ```text
-http://127.0.0.1:8080
+http://127.0.0.1:8090
 ```
 
-The UI expects the Mac daemon API at:
+Or from this directory:
 
-```text
-http://127.0.0.1:7878
+```sh
+python3 -m http.server 8090
 ```
 
-On the Surface, set the daemon URL in browser local storage if the Mac is on
-another host:
+## Surface Kiosk
+
+On the Surface:
+
+```sh
+./scripts/run-surface-web.sh
+chromium --kiosk http://127.0.0.1:8090
+```
+
+Set the Mac daemon URL when the daemon runs on another machine:
 
 ```js
 localStorage.setItem("glassdeck-daemon-url", "http://<mac-ip>:7878");
 ```
 
-## Surface Kiosk Direction
+## Control Center
 
-The target installation flow is:
+The control center currently shows:
 
-```sh
-chromium --kiosk http://127.0.0.1:8080
-```
+- Mac daemon connection state.
+- Target daemon host/IP.
+- Surface battery, when the browser exposes the Battery Status API.
+- Local UI brightness dimming.
+- Placeholder volume state.
+- Quick actions for daemon ping and opening Applications on the Mac.
 
-Later this can become a packaged PWA or a Vite/React app if the action editor
-needs richer state management.
+Direct Surface hardware brightness and volume control will need a Linux-side
+bridge later. A plain browser cannot reliably change those OS settings.

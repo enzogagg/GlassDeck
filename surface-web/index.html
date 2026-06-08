@@ -7,88 +7,103 @@
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
-    <main class="shell">
-      <header class="topbar">
-        <div>
-          <p class="eyebrow">GlassDeck</p>
-          <h1>Command Center</h1>
-        </div>
-        <section class="status-strip" aria-label="État du système">
-          <div class="status-item">
-            <span class="status-label">Mac</span>
-            <strong id="daemon-state">Connexion</strong>
-          </div>
-          <div class="status-item">
-            <span class="status-label">Réseau</span>
-            <strong>Local</strong>
-          </div>
-          <div class="status-item">
-            <span class="status-label">Profil</span>
-            <strong>Studio</strong>
-          </div>
+    <div id="screen-dimmer" class="screen-dimmer" aria-hidden="true"></div>
+
+    <main class="desktop">
+      <header class="menu-bar" aria-label="Barre système Surface">
+        <section class="menu-left">
+          <button class="brand-button" type="button" aria-label="GlassDeck">
+            <span class="brand-mark">◆</span>
+            <span>GlassDeck</span>
+          </button>
+          <span id="daemon-state" class="status-dot" aria-label="État du Mac"></span>
+        </section>
+
+        <section class="menu-right" aria-label="État rapide">
+          <span id="machine-ip" class="menu-chip">IP --</span>
+          <span id="battery-status" class="menu-chip">Batterie --</span>
+          <button
+            id="control-center-button"
+            class="control-button"
+            type="button"
+            aria-label="Centre de contrôle"
+            aria-expanded="false"
+          >
+            <span class="toggle-icon" aria-hidden="true"></span>
+          </button>
+          <time id="clock" class="clock">--:--</time>
         </section>
       </header>
 
-      <section class="workspace" aria-label="Actions principales">
-        <aside class="sidebar" aria-label="Navigation">
-          <button class="nav-button active" type="button" aria-label="Commandes">
-            <span>⌘</span>
-          </button>
-          <button class="nav-button" type="button" aria-label="Applications">
-            <span>▦</span>
-          </button>
-          <button class="nav-button" type="button" aria-label="Automations">
-            <span>↯</span>
-          </button>
-          <button class="nav-button" type="button" aria-label="Réglages">
-            <span>⚙</span>
-          </button>
-        </aside>
+      <section class="home-surface" aria-label="Accueil Surface"></section>
 
-        <section class="action-board">
-          <div class="section-heading">
+      <aside
+        id="control-center"
+        class="control-center"
+        aria-label="Centre de contrôle"
+        aria-hidden="true"
+      >
+        <div class="control-grid">
+          <section class="control-card connection-card">
             <div>
-              <p class="eyebrow">Surface</p>
-              <h2>Actions Mac</h2>
+              <span class="control-label">Mac</span>
+              <strong id="daemon-label">Connexion</strong>
             </div>
-            <button id="refresh-button" class="pill-button" type="button">
-              Actualiser
+            <button id="refresh-button" class="icon-button" type="button" aria-label="Actualiser">
+              ↻
             </button>
-          </div>
+          </section>
 
-          <div id="action-grid" class="action-grid" aria-live="polite"></div>
-        </section>
+          <section class="control-card">
+            <span class="control-label">Machine</span>
+            <strong id="ip-detail">--</strong>
+            <small id="daemon-url">--</small>
+          </section>
 
-        <aside class="detail-pane" aria-label="Détails">
-          <div class="detail-header">
-            <p class="eyebrow">Dernière action</p>
-            <h2 id="detail-title">Prêt</h2>
-          </div>
-          <p id="detail-message" class="detail-message">
-            La Surface attend les actions disponibles du Mac.
-          </p>
-          <div class="metrics">
-            <div>
-              <span>Clients</span>
-              <strong id="metric-clients">0</strong>
+          <section class="control-card">
+            <span class="control-label">Surface</span>
+            <strong id="battery-detail">Batterie inconnue</strong>
+            <small id="battery-extra">API batterie non détectée</small>
+          </section>
+
+          <section class="control-card slider-card">
+            <div class="slider-header">
+              <span class="control-label">Luminosité</span>
+              <strong id="brightness-value">100%</strong>
             </div>
-            <div>
-              <span>Uptime</span>
-              <strong id="metric-uptime">0s</strong>
-            </div>
-          </div>
-        </aside>
-      </section>
+            <input
+              id="brightness-slider"
+              type="range"
+              min="35"
+              max="100"
+              value="100"
+              aria-label="Luminosité"
+            />
+          </section>
 
-      <nav class="dock" aria-label="Actions rapides">
-        <button class="dock-button" type="button" data-action="ping">Ping</button>
-        <button class="dock-button" type="button" data-action="status">
-          Status
-        </button>
-        <button class="dock-button" type="button" data-action="open-applications">
-          Apps
-        </button>
-      </nav>
+          <section class="control-card slider-card">
+            <div class="slider-header">
+              <span class="control-label">Volume</span>
+              <strong id="volume-value">70%</strong>
+            </div>
+            <input
+              id="volume-slider"
+              type="range"
+              min="0"
+              max="100"
+              value="70"
+              aria-label="Volume"
+            />
+          </section>
+
+          <section class="control-card action-card">
+            <button class="wide-button" type="button" data-action="ping">Ping Mac</button>
+            <button class="wide-button" type="button" data-action="open-applications">
+              Applications
+            </button>
+          </section>
+        </div>
+      </aside>
     </main>
 
     <script src="./app.js" type="module"></script>

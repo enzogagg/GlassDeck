@@ -2,110 +2,117 @@ const daemonBaseUrl =
   localStorage.getItem("glassdeck-daemon-url") || "http://127.0.0.1:7878";
 
 const fallbackActions = [
-  {
-    id: "ping",
-    label: "Tester la connexion",
-    kind: "system",
-  },
-  {
-    id: "status",
-    label: "Lire l'état du daemon",
-    kind: "system",
-  },
-  {
-    id: "open-url",
-    label: "Ouvrir Apple",
-    kind: "application",
-    payload: { url: "https://www.apple.com" },
-  },
-  {
-    id: "open-applications",
-    label: "Applications",
-    kind: "application",
-  },
+  { id: "ping", label: "Tester la connexion", kind: "system" },
+  { id: "status", label: "Lire l'état du daemon", kind: "system" },
+  { id: "open-applications", label: "Applications", kind: "application" },
 ];
-
-const iconByAction = {
-  ping: "⌁",
-  status: "◎",
-  "open-url": "↗",
-  "open-applications": "▦",
-};
 
 const state = {
   actions: fallbackActions,
   online: false,
+  brightness: Number(localStorage.getItem("glassdeck-brightness") || "100"),
+  volume: Number(localStorage.getItem("glassdeck-volume") || "70"),
 };
 
 const elements = {
-  actionGrid: document.querySelector("#action-grid"),
+  batteryDetail: document.querySelector("#battery-detail"),
+  batteryExtra: document.querySelector("#battery-extra"),
+  batteryStatus: document.querySelector("#battery-status"),
+  brightnessSlider: document.querySelector("#brightness-slider"),
+  brightnessValue: document.querySelector("#brightness-value"),
+  clock: document.querySelector("#clock"),
+  controlCenter: document.querySelector("#control-center"),
+  controlCenterButton: document.querySelector("#control-center-button"),
+  daemonLabel: document.querySelector("#daemon-label"),
   daemonState: document.querySelector("#daemon-state"),
-  detailTitle: document.querySelector("#detail-title"),
-  detailMessage: document.querySelector("#detail-message"),
-  metricClients: document.querySelector("#metric-clients"),
-  metricUptime: document.querySelector("#metric-uptime"),
+  daemonUrl: document.querySelector("#daemon-url"),
+  dimmer: document.querySelector("#screen-dimmer"),
+  ipDetail: document.querySelector("#ip-detail"),
+  machineIp: document.querySelector("#machine-ip"),
   refreshButton: document.querySelector("#refresh-button"),
+  volumeSlider: document.querySelector("#volume-slider"),
+  volumeValue: document.querySelector("#volume-value"),
 };
 
-function formatKind(kind) {
-  const labels = {
-    system: "Système",
-    application: "Application",
-    script: "Script",
-  };
-
-  return labels[kind] || kind;
+function daemonHostLabel() {
+  try {
+    const url = new URL(daemonBaseUrl);
+    return url.hostname === "127.0.0.1" ? "Mac local" : url.hostname;
+  } catch {
+    return "Adresse inconnue";
+  }
 }
 
-function formatUptime(seconds) {
-  if (seconds < 60) {
-    return `${seconds}s`;
-  }
+function updateClock() {
+  const now = new Date();
+  elements.clock.textContent = new Intl.DateTimeFormat("fr-FR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(now);
+}
 
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) {
-    return `${minutes}m`;
-  }
-
-  return `${Math.floor(minutes / 60)}h`;
+function setControlCenterOpen(open) {
+  elements.controlCenter.classList.toggle("is-open", open);
+  elements.controlCenter.setAttribute("aria-hidden", String(!open));
+  elements.controlCenterButton.setAttribute("aria-expanded", String(open));
 }
 
 function setConnectionState(online) {
   state.online = online;
-  elements.daemonState.textContent = online ? "Connecté" : "Hors ligne";
   elements.daemonState.classList.toggle("is-online", online);
   elements.daemonState.classList.toggle("is-offline", !online);
+  elements.daemonLabel.textContent = online ? "Connecté" : "Hors ligne";
 }
 
-function setDetail(title, message) {
-  elements.detailTitle.textContent = title;
-  elements.detailMessage.textContent = message;
+function applyBrightness(value) {
+  state.brightness = value;
+  localStorage.setItem("glassdeck-brightness", String(value));
+  elements.brightnessSlider.value = String(value);
+  elements.brightnessValue.textContent = `${value}%`;
+
+  const dimOpacity = Math.max(0, Math.min(0.55, (100 - value) / 100));
+  elements.dimmer.style.opacity = String(dimOpacity);
 }
 
-function renderActions() {
-  elements.actionGrid.innerHTML = "";
+function applyVolume(value) {
+  state.volume = value;
+  localStorage.setItem("glassdeck-volume", String(value));
+  elements.volumeSlider.value = String(value);
+  elements.volumeValue.textContent = `${value}%`;
+}
 
-  for (const action of state.actions) {
-    const button = document.createElement("button");
-    button.className = "action-card";
-    button.type = "button";
-    button.dataset.action = action.id;
+function updateMachineInfo() {
+  const host = daemonHostLabel();
+  elements.machineIp.textContent = `IP ${host}`;
+  elements.ipDetail.textContent = host;
+  elements.daemonUrl.textContent = daemonBaseUrl;
+}
 
-    const icon = document.createElement("span");
-    icon.className = "action-icon";
-    icon.textContent = iconByAction[action.id] || "⌘";
+function updateBatteryDisplay(battery) {
+  const percent = Math.round(battery.level * 100);
+  const charging = battery.charging ? "En charge" : "Sur batterie";
+  elements.batteryStatus.textContent = `${percent}%`;
+  elements.batteryDetail.textContent = `${percent}%`;
+  elements.batteryExtra.textContent = charging;
+}
 
-    const title = document.createElement("p");
-    title.className = "action-title";
-    title.textContent = action.label;
+async function initBattery() {
+  if (!("getBattery" in navigator)) {
+    elements.batteryStatus.textContent = "Batterie --";
+    elements.batteryDetail.textContent = "Batterie inconnue";
+    elements.batteryExtra.textContent = "API batterie non disponible";
+    return;
+  }
 
-    const kind = document.createElement("span");
-    kind.className = "action-kind";
-    kind.textContent = formatKind(action.kind);
-
-    button.append(icon, title, kind);
-    button.addEventListener("click", () => executeAction(action));
-    elements.actionGrid.append(button);
+  try {
+    const battery = await navigator.getBattery();
+    updateBatteryDisplay(battery);
+    battery.addEventListener("levelchange", () => updateBatteryDisplay(battery));
+    battery.addEventListener("chargingchange", () => updateBatteryDisplay(battery));
+  } catch (error) {
+    elements.batteryStatus.textContent = "Batterie --";
+    elements.batteryDetail.textContent = "Batterie inconnue";
+    elements.batteryExtra.textContent = error.message;
   }
 }
 
@@ -122,25 +129,20 @@ async function refreshStatus() {
 
     const status = await response.json();
     state.actions = status.available_actions || fallbackActions;
-    elements.metricClients.textContent = String(status.connected_clients ?? 0);
-    elements.metricUptime.textContent = formatUptime(status.uptime_seconds ?? 0);
     setConnectionState(true);
-    setDetail(status.daemon_name || "Mac connecté", "Actions synchronisées.");
-    renderActions();
-  } catch (error) {
-    setConnectionState(false);
-    setDetail("Mode local", `Daemon non joignable: ${error.message}`);
+  } catch {
     state.actions = fallbackActions;
-    renderActions();
+    setConnectionState(false);
   }
 }
 
-async function executeAction(action) {
-  const payload = action.payload || {};
+async function executeAction(actionId) {
+  const action = state.actions.find((item) => item.id === actionId);
+  if (!action) {
+    return;
+  }
 
   try {
-    setDetail(action.label, "Exécution en cours...");
-
     const response = await fetch(`${daemonBaseUrl}/command`, {
       method: "POST",
       mode: "cors",
@@ -150,7 +152,7 @@ async function executeAction(action) {
       body: JSON.stringify({
         request_id: crypto.randomUUID(),
         action_id: action.id,
-        payload,
+        payload: action.payload || {},
       }),
     });
 
@@ -158,26 +160,44 @@ async function executeAction(action) {
       throw new Error(`HTTP ${response.status}`);
     }
 
-    const result = await response.json();
     setConnectionState(true);
-    setDetail(action.label, result.message || "Action terminée.");
-  } catch (error) {
+  } catch {
     setConnectionState(false);
-    setDetail(action.label, `Échec: ${error.message}`);
   }
 }
 
-elements.refreshButton.addEventListener("click", refreshStatus);
-
-document.querySelectorAll(".dock-button").forEach((button) => {
-  button.addEventListener("click", () => {
-    const action = state.actions.find((item) => item.id === button.dataset.action);
-    if (action) {
-      executeAction(action);
-    }
-  });
+elements.controlCenterButton.addEventListener("click", () => {
+  setControlCenterOpen(!elements.controlCenter.classList.contains("is-open"));
 });
 
-renderActions();
+elements.refreshButton.addEventListener("click", refreshStatus);
+
+elements.brightnessSlider.addEventListener("input", (event) => {
+  applyBrightness(Number(event.target.value));
+});
+
+elements.volumeSlider.addEventListener("input", (event) => {
+  applyVolume(Number(event.target.value));
+});
+
+document.querySelectorAll("[data-action]").forEach((button) => {
+  button.addEventListener("click", () => executeAction(button.dataset.action));
+});
+
+document.addEventListener("click", (event) => {
+  if (
+    !elements.controlCenter.contains(event.target) &&
+    !elements.controlCenterButton.contains(event.target)
+  ) {
+    setControlCenterOpen(false);
+  }
+});
+
+updateMachineInfo();
+updateClock();
+applyBrightness(state.brightness);
+applyVolume(state.volume);
+initBattery();
 refreshStatus();
+setInterval(updateClock, 1000);
 setInterval(refreshStatus, 5000);

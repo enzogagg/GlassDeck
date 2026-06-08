@@ -50,6 +50,13 @@ Then open:
 http://127.0.0.1:8090
 ```
 
+On the Surface, run the UI full-screen:
+
+```sh
+./scripts/run-surface-web.sh
+chromium --kiosk http://127.0.0.1:8090
+```
+
 ## Mac Daemon
 
 The daemon listens on `127.0.0.1:7878` by default. Override the bind setting
@@ -73,8 +80,20 @@ Current action IDs:
 
 ## Surface Web
 
-The Surface UI is intentionally static for now. It can be served locally and
-launched full-screen:
+The Surface UI is intentionally minimal for now: a blank home surface with a
+macOS-style horizontal system bar. The bar shows daemon connectivity, the target
+machine host/IP, Surface battery when supported by the browser, and a clock.
+
+The control center button opens quick controls for:
+
+- Mac daemon status and refresh.
+- Target daemon host/IP.
+- Surface battery state.
+- Local UI brightness dimming.
+- Placeholder volume state.
+- Quick Mac actions.
+
+Serve it locally and launch it full-screen:
 
 ```sh
 chromium --kiosk http://127.0.0.1:8090
@@ -85,6 +104,12 @@ When the daemon runs on another machine, set the URL in browser local storage:
 ```js
 localStorage.setItem("glassdeck-daemon-url", "http://<mac-ip>:7878");
 ```
+
+Browser limitations:
+
+- The battery value depends on `navigator.getBattery()` support.
+- Direct hardware brightness and volume control need a Linux-side bridge later;
+  the current brightness control dims the web UI locally.
 
 ## Repository Hygiene
 
