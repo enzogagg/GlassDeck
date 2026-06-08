@@ -1,7 +1,0 @@
-[workspace]
-members = [
-    "shared",
-    "surface-client",
-    "mac-daemon",
-]
-resolver = "2"

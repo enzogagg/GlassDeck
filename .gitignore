@@ -1,8 +1,7 @@
-# Rust build artifacts
+# Build artifacts
 /target/
-
-# Local Cargo output and backups
-**/*.rs.bk
+/.build/
+**/.build/
 
 # Environment and local secrets
 .env

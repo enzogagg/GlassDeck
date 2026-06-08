@@ -1,8 +1,0 @@
-[package]
-name = "surface-client"
-version = "0.1.0"
-edition = "2021"
-
-[dependencies]
-shared = { path = "../shared" }
-slint = { version = "1.16.1", features = ["backend-linuxkms"] }

@@ -1,8 +1,0 @@
-[package]
-name = "mac-daemon"
-version = "0.1.0"
-edition = "2021"
-
-[dependencies]
-shared = { path = "../shared" }
-tokio = { version = "1", features = ["full"] }

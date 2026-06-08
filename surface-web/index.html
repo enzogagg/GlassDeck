@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GlassDeck Surface</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">GlassDeck</p>
+          <h1>Command Center</h1>
+        </div>
+        <section class="status-strip" aria-label="État du système">
+          <div class="status-item">
+            <span class="status-label">Mac</span>
+            <strong id="daemon-state">Connexion</strong>
+          </div>
+          <div class="status-item">
+            <span class="status-label">Réseau</span>
+            <strong>Local</strong>
+          </div>
+          <div class="status-item">
+            <span class="status-label">Profil</span>
+            <strong>Studio</strong>
+          </div>
+        </section>
+      </header>
+
+      <section class="workspace" aria-label="Actions principales">
+        <aside class="sidebar" aria-label="Navigation">
+          <button class="nav-button active" type="button" aria-label="Commandes">
+            <span>⌘</span>
+          </button>
+          <button class="nav-button" type="button" aria-label="Applications">
+            <span>▦</span>
+          </button>
+          <button class="nav-button" type="button" aria-label="Automations">
+            <span>↯</span>
+          </button>
+          <button class="nav-button" type="button" aria-label="Réglages">
+            <span>⚙</span>
+          </button>
+        </aside>
+
+        <section class="action-board">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Surface</p>
+              <h2>Actions Mac</h2>
+            </div>
+            <button id="refresh-button" class="pill-button" type="button">
+              Actualiser
+            </button>
+          </div>
+
+          <div id="action-grid" class="action-grid" aria-live="polite"></div>
+        </section>
+
+        <aside class="detail-pane" aria-label="Détails">
+          <div class="detail-header">
+            <p class="eyebrow">Dernière action</p>
+            <h2 id="detail-title">Prêt</h2>
+          </div>
+          <p id="detail-message" class="detail-message">
+            La Surface attend les actions disponibles du Mac.
+          </p>
+          <div class="metrics">
+            <div>
+              <span>Clients</span>
+              <strong id="metric-clients">0</strong>
+            </div>
+            <div>
+              <span>Uptime</span>
+              <strong id="metric-uptime">0s</strong>
+            </div>
+          </div>
+        </aside>
+      </section>
+
+      <nav class="dock" aria-label="Actions rapides">
+        <button class="dock-button" type="button" data-action="ping">Ping</button>
+        <button class="dock-button" type="button" data-action="status">
+          Status
+        </button>
+        <button class="dock-button" type="button" data-action="open-applications">
+          Apps
+        </button>
+      </nav>
+    </main>
+
+    <script src="./app.js" type="module"></script>
+  </body>
+</html>
