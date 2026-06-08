@@ -1,0 +1,145 @@
+name: GlassDeck
+
+on:
+  push:
+    branches: [master, main]
+    tags:
+      - "v*"
+  pull_request:
+
+jobs:
+  surface-web:
+    name: Surface web
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate static assets
+        run: |
+          test -f surface-web/index.html
+          test -f surface-web/styles.css
+          test -f surface-web/app.js
+          python3 - <<'PY'
+          from html.parser import HTMLParser
+          from pathlib import Path
+
+          root = Path("surface-web")
+          html = root.joinpath("index.html").read_text(encoding="utf-8")
+
+          class Parser(HTMLParser):
+              def __init__(self):
+                  super().__init__()
+                  self.links = []
+                  self.scripts = []
+
+              def handle_starttag(self, tag, attrs):
+                  values = dict(attrs)
+                  if tag == "link" and values.get("href"):
+                      self.links.append(values["href"])
+                  if tag == "script" and values.get("src"):
+                      self.scripts.append(values["src"])
+
+          parser = Parser()
+          parser.feed(html)
+
+          for asset in parser.links + parser.scripts:
+              if asset.startswith(("http://", "https://", "/")):
+                  continue
+              path = root.joinpath(asset.removeprefix("./"))
+              if not path.exists():
+                  raise SystemExit(f"Missing referenced asset: {asset}")
+          PY
+
+      - name: Smoke test Surface server
+        run: |
+          python3 -m http.server 8090 --directory surface-web &
+          server_pid="$!"
+          trap 'kill "$server_pid"' EXIT
+          sleep 2
+          curl -fsS http://127.0.0.1:8090/index.html >/dev/null
+          curl -fsS http://127.0.0.1:8090/styles.css >/dev/null
+          curl -fsS http://127.0.0.1:8090/app.js >/dev/null
+
+      - name: Upload Surface web artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: glassdeck-surface-web
+          path: surface-web/
+
+  scripts:
+    name: Scripts
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate shell scripts
+        run: |
+          sh -n scripts/run-mac-daemon.sh
+          sh -n scripts/run-surface-web.sh
+
+  swift:
+    name: Swift packages
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        package:
+          - mac-daemon
+          - mac-app
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build debug
+        run: swift build
+        working-directory: ${{ matrix.package }}
+
+      - name: Build release
+        run: swift build -c release
+        working-directory: ${{ matrix.package }}
+
+  package:
+    name: Delivery artifacts
+    runs-on: macos-latest
+    needs:
+      - surface-web
+      - scripts
+      - swift
+    if: github.event_name == 'push'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build daemon release
+        run: swift build -c release
+        working-directory: mac-daemon
+
+      - name: Stage daemon
+        run: |
+          mkdir -p dist/mac-daemon
+          cp mac-daemon/.build/release/glassdeck-mac-daemon dist/mac-daemon/
+          cp scripts/run-mac-daemon.sh dist/mac-daemon/
+
+      - name: Stage Surface web
+        run: |
+          mkdir -p dist/surface-web
+          cp -R surface-web/. dist/surface-web/
+          cp scripts/run-surface-web.sh dist/surface-web/
+
+      - name: Upload Mac daemon artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: glassdeck-mac-daemon
+          path: dist/mac-daemon/
+
+      - name: Upload Surface web artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: glassdeck-surface-web-package
+          path: dist/surface-web/
