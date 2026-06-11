@@ -13,8 +13,164 @@ interface on the Surface:
 ## Requirements
 
 - macOS with Swift 6 and Xcode command line tools for `mac-daemon` and `mac-app`.
-- Python 3 or any static file server for `surface-web`.
+- Ubuntu 24.04 or another Linux distribution on the Surface.
+- Python 3 for the Surface web bridge.
 - Chromium or another kiosk-capable browser on the Surface.
+- BlueZ on the Surface for Bluetooth pairing and Bluetooth PAN.
+
+## Installation
+
+### 1. Clone the project
+
+On both the Mac and the Surface:
+
+```sh
+git clone https://gitea.ega.ovh/enzogagg/GlassDeck.git
+cd GlassDeck
+```
+
+If the repository already exists:
+
+```sh
+cd GlassDeck
+git pull
+```
+
+### 2. Install Mac requirements
+
+Install Apple's command line tools if Swift is not available:
+
+```sh
+xcode-select --install
+```
+
+Check Swift:
+
+```sh
+swift --version
+```
+
+### 3. Install Surface requirements on Ubuntu
+
+Install Chromium, Python, and BlueZ:
+
+```sh
+sudo apt update
+sudo apt install -y python3 chromium-browser bluez
+```
+
+Some Ubuntu installs provide Chromium as `chromium` instead of
+`chromium-browser`. If the kiosk launch script cannot find Chromium, install the
+available package for your distribution and adjust `scripts/restart-surface.sh`
+if needed.
+
+Enable the Bluetooth service:
+
+```sh
+sudo systemctl enable --now bluetooth
+```
+
+Check that the Bluetooth CLI is available:
+
+```sh
+bluetoothctl --version
+```
+
+### 4. Make the Surface discoverable
+
+On the Surface:
+
+```sh
+bluetoothctl
+```
+
+Inside `bluetoothctl`:
+
+```text
+power on
+agent on
+default-agent
+pairable on
+discoverable on
+show
+```
+
+Keep this terminal open while pairing. If the Mac still does not show the
+Surface, pair from the Surface instead:
+
+```text
+scan on
+pair <mac-bluetooth-address>
+trust <mac-bluetooth-address>
+connect <mac-bluetooth-address>
+```
+
+Accept the pairing prompt on the Mac.
+
+After pairing, keep the Mac trusted and connected from the Surface:
+
+```text
+trust <mac-bluetooth-address>
+connect <mac-bluetooth-address>
+```
+
+### 5. Enable Bluetooth PAN on the Mac
+
+On macOS:
+
+- Open **System Settings > Bluetooth** and confirm the Surface is paired.
+- Open **System Settings > General > Sharing**.
+- Enable **Internet Sharing**.
+- Share your connection from any available interface.
+- Share to computers using **Bluetooth PAN**.
+
+The Mac usually becomes the Bluetooth PAN gateway at `192.168.2.1`.
+
+Back on the Surface, confirm that Linux created a Bluetooth network interface:
+
+```sh
+ip addr show
+```
+
+Look for an interface such as `bnep0`. GlassDeck uses this interface to find the
+Mac daemon without Wi-Fi.
+
+### 6. Start GlassDeck
+
+On the Mac:
+
+```sh
+./scripts/run-mac-daemon.sh
+```
+
+On the Surface:
+
+```sh
+./scripts/run-surface.sh
+```
+
+Open the Surface UI:
+
+```text
+http://127.0.0.1:8090
+```
+
+For kiosk boot on the Surface:
+
+```sh
+./scripts/install-ui.sh
+systemctl --user start glassdeck-ui.service
+```
+
+When Bluetooth PAN is connected, GlassDeck automatically probes the Mac daemon
+over Bluetooth and shows a `BT` target in the control center.
+
+If the Surface was already running before Bluetooth PAN connected, restart the
+UI:
+
+```sh
+systemctl --user restart glassdeck-ui.service
+```
 
 ## Development
 
