@@ -1,5 +1,6 @@
-const daemonBaseUrl =
-  localStorage.getItem("glassdeck-daemon-url") || "http://127.0.0.1:7878";
+const defaultDaemonBaseUrl = "http://127.0.0.1:7878";
+const storedDaemonBaseUrl = localStorage.getItem("glassdeck-daemon-url");
+let daemonBaseUrl = storedDaemonBaseUrl || defaultDaemonBaseUrl;
 
 const fallbackActions = [
   { id: "ping", label: "Tester la connexion", kind: "system" },
@@ -9,7 +10,10 @@ const fallbackActions = [
 
 const state = {
   actions: fallbackActions,
+  battery: null,
+  controlTimers: new Map(),
   online: false,
+  autoDaemonUrl: !storedDaemonBaseUrl,
   brightness: Number(localStorage.getItem("glassdeck-brightness") || "100"),
   volume: Number(localStorage.getItem("glassdeck-volume") || "70"),
 };
@@ -39,10 +43,27 @@ const elements = {
 function daemonHostLabel() {
   try {
     const url = new URL(daemonBaseUrl);
-    return url.hostname === "127.0.0.1" ? "Mac local" : url.hostname;
+    if (url.hostname === "127.0.0.1") {
+      return "Mac local";
+    }
+    return url.hostname;
   } catch {
     return "Adresse inconnue";
   }
+}
+
+function setDaemonBaseUrl(baseUrl, { persist = false } = {}) {
+  if (!baseUrl || baseUrl === daemonBaseUrl) {
+    return false;
+  }
+
+  daemonBaseUrl = baseUrl;
+  if (persist) {
+    localStorage.setItem("glassdeck-daemon-url", baseUrl);
+    state.autoDaemonUrl = false;
+  }
+  updateMachineInfo();
+  return true;
 }
 
 function updateClock() {
@@ -50,6 +71,7 @@ function updateClock() {
   elements.clock.textContent = new Intl.DateTimeFormat("fr-FR", {
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: "Europe/Paris",
   }).format(now);
 }
 
@@ -71,9 +93,15 @@ function applyBrightness(value) {
   localStorage.setItem("glassdeck-brightness", String(value));
   elements.brightnessSlider.value = String(value);
   elements.brightnessValue.textContent = `${value}%`;
+  elements.dimmer.style.opacity = "0";
+}
 
-  const dimOpacity = Math.max(0, Math.min(0.55, (100 - value) / 100));
-  elements.dimmer.style.opacity = String(dimOpacity);
+function syncBrightnessSnapshot(snapshot = {}) {
+  if (!Number.isFinite(snapshot.percent)) {
+    return;
+  }
+
+  applyBrightness(snapshot.percent);
 }
 
 function applyVolume(value) {
@@ -83,23 +111,90 @@ function applyVolume(value) {
   elements.volumeValue.textContent = `${value}%`;
 }
 
+function updateControls(controls = {}) {
+  const brightness = controls.brightness || {};
+  const volume = controls.volume || {};
+
+  elements.brightnessSlider.disabled = !brightness.available;
+  if (!brightness.available) {
+    elements.brightnessValue.textContent = "Indispo";
+  }
+
+  elements.volumeSlider.disabled = !volume.available;
+  if (!volume.available) {
+    elements.volumeValue.textContent = "Indispo";
+  }
+}
+
+function queueSurfaceControl(control, value) {
+  clearTimeout(state.controlTimers.get(control));
+  state.controlTimers.set(
+    control,
+    setTimeout(() => {
+      sendSurfaceControl(control, value);
+    }, 120),
+  );
+}
+
+async function sendSurfaceControl(control, value) {
+  try {
+    const response = await fetch("/surface-control", {
+      body: JSON.stringify({ control, value }),
+      cache: "no-store",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      method: "POST",
+    });
+
+    const result = await response.json();
+    if (!response.ok || !result.ok) {
+      throw new Error(result.error || `HTTP ${response.status}`);
+    }
+  } catch (error) {
+    if (control === "brightness") {
+      elements.brightnessValue.textContent = "Erreur";
+    }
+    if (control === "volume") {
+      elements.volumeValue.textContent = "Indispo";
+    }
+    console.error(`GlassDeck ${control}`, error);
+  }
+}
+
 function updateMachineInfo() {
   const host = daemonHostLabel();
-  elements.machineIp.textContent = `IP ${host}`;
+  const isBluetoothTarget = state.autoDaemonUrl && daemonBaseUrl !== defaultDaemonBaseUrl;
+  elements.machineIp.textContent = `${isBluetoothTarget ? "BT" : "IP"} ${host}`;
   elements.ipDetail.textContent = host;
   elements.daemonUrl.textContent = daemonBaseUrl;
 }
 
-function updateBatteryDisplay(battery) {
-  const percent = Math.round(battery.level * 100);
-  const charging = battery.charging ? "En charge" : "Sur batterie";
-  elements.batteryStatus.textContent = `🔋 ${percent}%`;
+function updateBatteryDisplay(snapshot) {
+  const percent = snapshot.percent;
+  const charging = snapshot.charging ? "En charge" : "Sur batterie";
+  elements.batteryStatus.textContent = `${snapshot.charging ? "⚡" : "🔋"} ${percent}%`;
   elements.batteryDetail.textContent = `${percent}%`;
   elements.batteryExtra.textContent = charging;
 }
 
-function updateSurfaceIp() {
-  elements.surfaceIp.textContent = "192.168.10.57";
+function updateSurfaceIp(addresses = []) {
+  elements.surfaceIp.textContent = addresses[0] || "IP indisponible";
+}
+
+function syncBluetoothDaemon(bluetooth = {}) {
+  if (!bluetooth.recommended_url || (!state.autoDaemonUrl && state.online)) {
+    return false;
+  }
+
+  return setDaemonBaseUrl(bluetooth.recommended_url);
+}
+
+function browserBatterySnapshot(battery) {
+  return {
+    percent: Math.round(battery.level * 100),
+    charging: battery.charging,
+  };
 }
 
 async function initBattery() {
@@ -112,13 +207,47 @@ async function initBattery() {
 
   try {
     const battery = await navigator.getBattery();
-    updateBatteryDisplay(battery);
-    battery.addEventListener("levelchange", () => updateBatteryDisplay(battery));
-    battery.addEventListener("chargingchange", () => updateBatteryDisplay(battery));
+    state.battery = battery;
+    updateBatteryDisplay(browserBatterySnapshot(battery));
+    battery.addEventListener("levelchange", () => updateBatteryDisplay(browserBatterySnapshot(battery)));
+    battery.addEventListener("chargingchange", () => updateBatteryDisplay(browserBatterySnapshot(battery)));
   } catch (error) {
     elements.batteryStatus.textContent = "Batterie --";
     elements.batteryDetail.textContent = "Batterie inconnue";
     elements.batteryExtra.textContent = error.message;
+  }
+}
+
+async function refreshSurfaceStatus() {
+  try {
+    const response = await fetch("/surface-status", {
+      cache: "no-store",
+      method: "GET",
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    const status = await response.json();
+    updateSurfaceIp(status.addresses || []);
+    updateControls(status.controls || {});
+    syncBrightnessSnapshot(status.controls?.brightness);
+    const daemonChanged = syncBluetoothDaemon(status.bluetooth);
+    if (daemonChanged) {
+      refreshStatus();
+    }
+
+    if (status.battery && Number.isFinite(status.battery.percent)) {
+      updateBatteryDisplay(status.battery);
+      return;
+    }
+  } catch {
+    updateSurfaceIp([]);
+  }
+
+  if (state.battery) {
+    updateBatteryDisplay(browserBatterySnapshot(state.battery));
   }
 }
 
@@ -179,11 +308,15 @@ elements.controlCenterButton.addEventListener("click", () => {
 elements.refreshButton.addEventListener("click", refreshStatus);
 
 elements.brightnessSlider.addEventListener("input", (event) => {
-  applyBrightness(Number(event.target.value));
+  const value = Number(event.target.value);
+  applyBrightness(value);
+  queueSurfaceControl("brightness", value);
 });
 
 elements.volumeSlider.addEventListener("input", (event) => {
-  applyVolume(Number(event.target.value));
+  const value = Number(event.target.value);
+  applyVolume(value);
+  queueSurfaceControl("volume", value);
 });
 
 elements.quitButton.addEventListener("click", () => {
@@ -208,11 +341,12 @@ document.addEventListener("click", (event) => {
 });
 
 updateMachineInfo();
-updateSurfaceIp();
 updateClock();
 applyBrightness(state.brightness);
 applyVolume(state.volume);
 initBattery();
+refreshSurfaceStatus();
 refreshStatus();
 setInterval(updateClock, 1000);
+setInterval(refreshSurfaceStatus, 1000);
 setInterval(refreshStatus, 5000);

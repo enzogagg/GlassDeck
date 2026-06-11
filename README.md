@@ -72,8 +72,20 @@ You can use GlassDeck without a Wi-Fi network by using Bluetooth PAN (Personal A
 - Connect to the Mac's Network service (PAN).
 - The Mac will typically act as the gateway (e.g., `192.168.2.1`).
 
-### 3. Update the Surface UI
-Set the daemon URL to the Mac's Bluetooth IP:
+### 3. Start GlassDeck
+Run the Mac daemon normally. It listens on all local interfaces by default,
+including the Bluetooth PAN interface:
+
+```sh
+./scripts/run-mac-daemon.sh
+```
+
+Start or restart the Surface UI. The Surface web bridge detects Bluetooth PAN
+interfaces such as `bnep0`, probes the usual Mac PAN gateway addresses, and
+automatically points the UI at the first reachable daemon.
+
+If you want to force a specific Mac Bluetooth IP, set it manually in Chromium:
+
 ```js
 localStorage.setItem("glassdeck-daemon-url", "http://192.168.2.1:7878");
 ```
@@ -108,7 +120,8 @@ This creates a `systemd` user service named `glassdeck-my-addon`.
 
 ## Mac Daemon
 
-The daemon listens on `127.0.0.1:7878` by default. Override the bind setting
+The daemon listens on `0.0.0.0:7878` by default so the Surface can reach it over
+Wi-Fi or Bluetooth PAN. Override the bind setting
 with:
 
 ```sh
@@ -153,6 +166,9 @@ When the daemon runs on another machine, set the URL in browser local storage:
 ```js
 localStorage.setItem("glassdeck-daemon-url", "http://<mac-ip>:7878");
 ```
+
+When no URL is stored, the Surface bridge tries to discover the Mac daemon over
+Bluetooth PAN automatically and shows the selected target in the control center.
 
 Browser limitations:
 
