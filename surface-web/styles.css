@@ -86,7 +86,7 @@ input:focus-visible {
   position: relative;
   z-index: 10;
   display: grid;
-  grid-template-rows: 38px 1fr;
+  grid-template-rows: 56px 1fr;
   min-height: 100%;
 }
 
@@ -94,21 +94,23 @@ input:focus-visible {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  height: 38px;
-  padding: 0 14px;
+  gap: 18px;
+  height: 56px;
+  padding: 0 18px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(18, 18, 20, 0.62);
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.2);
-  backdrop-filter: blur(26px) saturate(180%);
-  -webkit-backdrop-filter: blur(26px) saturate(180%);
+  box-shadow:
+    inset 0 -1px 0 rgba(0, 0, 0, 0.18),
+    0 12px 34px rgba(0, 0, 0, 0.22);
+  backdrop-filter: blur(30px) saturate(185%);
+  -webkit-backdrop-filter: blur(30px) saturate(185%);
 }
 
 .menu-left,
 .menu-right {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   min-width: 0;
 }
 
@@ -131,13 +133,13 @@ input:focus-visible {
 .brand-button {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  min-height: 30px;
-  padding: 0 8px;
-  border-radius: var(--radius-sm);
+  gap: 10px;
+  min-height: 42px;
+  padding: 0 12px 0 8px;
+  border-radius: 13px;
   background: transparent;
-  font-size: 0.88rem;
-  font-weight: 700;
+  font-size: 1.02rem;
+  font-weight: 740;
   letter-spacing: 0;
 }
 
@@ -159,18 +161,16 @@ input:focus-visible {
 }
 
 .brand-mark {
-  width: 18px;
-  height: 18px;
-  border-radius: 6px;
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0) 38%),
-    linear-gradient(145deg, #72c5ff 0%, #0a84ff 52%, #004fc4 100%);
-  box-shadow: 0 8px 18px rgba(10, 132, 255, 0.34);
+  display: block;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  filter: drop-shadow(0 10px 18px rgba(10, 132, 255, 0.26));
 }
 
 .status-dot {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
   border-radius: 999px;
   background: var(--amber);
   box-shadow: 0 0 0 3px rgba(255, 214, 10, 0.16);
@@ -190,13 +190,14 @@ input:focus-visible {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: 28px;
-  max-width: 272px;
-  padding: 0 10px;
+  height: 38px;
+  max-width: 300px;
+  padding: 0 13px;
   overflow: hidden;
-  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
   color: rgba(245, 245, 247, 0.9);
-  font-size: 0.82rem;
+  font-size: 0.96rem;
   font-weight: 650;
   letter-spacing: 0;
   text-overflow: ellipsis;
@@ -208,15 +209,16 @@ input:focus-visible {
 }
 
 .menu-chip-metrics {
-  max-width: 318px;
+  max-width: 360px;
 }
 
 .control-button {
   display: grid;
   place-items: center;
-  width: 36px;
-  height: 28px;
-  border-radius: 8px;
+  width: 46px;
+  height: 38px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
   background: rgba(255, 255, 255, 0.08);
 }
 
@@ -263,11 +265,13 @@ input:focus-visible {
   border: 1px solid rgba(255, 255, 255, 0.055);
   border-radius: 34px;
   background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent 16%),
     linear-gradient(145deg, rgba(255, 255, 255, 0.072), rgba(255, 255, 255, 0) 42%),
     linear-gradient(25deg, rgba(10, 132, 255, 0.12), rgba(255, 255, 255, 0) 48%),
     rgba(255, 255, 255, 0.015);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    inset 0 -60px 120px rgba(0, 0, 0, 0.24),
     0 24px 80px rgba(0, 0, 0, 0.18);
 }
 
@@ -279,7 +283,7 @@ input:focus-visible {
   display: flex;
   gap: 9px;
   max-width: calc(100vw - 32px);
-  padding: 9px;
+  padding: 10px;
   border: 1px solid rgba(255, 255, 255, 0.18);
   border-radius: 26px;
   background:
@@ -308,6 +312,10 @@ input:focus-visible {
   transform: translateY(-5px);
 }
 
+.dock-button:hover .dock-icon {
+  transform: scale(1.04);
+}
+
 .dock-icon {
   position: relative;
   display: grid;
@@ -321,6 +329,7 @@ input:focus-visible {
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.22),
     0 12px 24px rgba(10, 132, 255, 0.26);
+  transition: transform 180ms var(--ease-out);
 }
 
 .dock-icon::before,
@@ -403,8 +412,8 @@ input:focus-visible {
 
 .control-center {
   position: fixed;
-  top: 48px;
-  right: 12px;
+  top: 68px;
+  right: 14px;
   z-index: 30;
   width: min(414px, calc(100vw - 24px));
   transform: translateY(-8px) scale(0.985);
@@ -426,11 +435,11 @@ input:focus-visible {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
-  max-height: calc(100vh - 64px);
-  padding: 12px;
+  max-height: calc(100vh - 82px);
+  padding: 14px;
   overflow-y: auto;
   border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 28px;
+  border-radius: 30px;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.165), rgba(255, 255, 255, 0.075)),
     rgba(28, 28, 30, 0.78);
@@ -448,7 +457,7 @@ input:focus-visible {
   grid-column: span 2;
   gap: 12px;
   min-width: 0;
-  padding: 3px 4px 5px;
+  padding: 4px 5px 6px;
 }
 
 .control-heading span,
@@ -463,7 +472,7 @@ input:focus-visible {
   display: block;
   margin-top: 2px;
   color: var(--ink);
-  font-size: 1.08rem;
+  font-size: 1.16rem;
   font-weight: 760;
   letter-spacing: 0;
   line-height: 1.18;
@@ -478,18 +487,18 @@ input:focus-visible {
 
 .control-card {
   position: relative;
-  min-height: 88px;
+  min-height: 92px;
   min-width: 0;
   padding: 14px;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 19px;
+  border-radius: 20px;
   background: rgba(255, 255, 255, 0.085);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 .compact-card {
-  min-height: 78px;
+  min-height: 82px;
 }
 
 .connection-card {
@@ -498,7 +507,7 @@ input:focus-visible {
   align-items: center;
   gap: 12px;
   grid-column: span 2;
-  min-height: 76px;
+  min-height: 82px;
   background:
     linear-gradient(135deg, rgba(10, 132, 255, 0.24), rgba(255, 255, 255, 0.08)),
     rgba(255, 255, 255, 0.08);
@@ -801,10 +810,11 @@ input[type="range"]::-moz-range-thumb {
 
 @media (max-width: 720px) {
   .desktop {
-    grid-template-rows: 38px 1fr;
+    grid-template-rows: 52px 1fr;
   }
 
   .menu-bar {
+    height: 52px;
     padding: 0 10px;
   }
 
@@ -816,8 +826,19 @@ input[type="range"]::-moz-range-thumb {
   .menu-chip,
   .clock {
     max-width: 122px;
+    height: 34px;
+    padding: 0 9px;
+    font-size: 0.84rem;
+  }
+
+  .brand-button {
+    min-height: 38px;
     padding: 0 8px;
-    font-size: 0.78rem;
+  }
+
+  .brand-mark {
+    width: 30px;
+    height: 30px;
   }
 
   .desktop-wallpaper {
@@ -845,13 +866,13 @@ input[type="range"]::-moz-range-thumb {
   }
 
   .control-center {
-    top: 46px;
+    top: 62px;
     right: 8px;
     width: calc(100vw - 16px);
   }
 
   .control-panel {
-    max-height: calc(100vh - 56px);
+    max-height: calc(100vh - 72px);
     border-radius: 24px;
   }
 

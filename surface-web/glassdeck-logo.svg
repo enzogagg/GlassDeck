@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title desc">
+  <title id="title">GlassDeck</title>
+  <desc id="desc">GlassDeck layered glass logo</desc>
+  <defs>
+    <linearGradient id="plate" x1="24" y1="18" x2="104" y2="110" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#f8fbff"/>
+      <stop offset=".32" stop-color="#7cc7ff"/>
+      <stop offset=".68" stop-color="#0a84ff"/>
+      <stop offset="1" stop-color="#0057d9"/>
+    </linearGradient>
+    <linearGradient id="shine" x1="32" y1="26" x2="82" y2="86" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fff" stop-opacity=".95"/>
+      <stop offset=".42" stop-color="#fff" stop-opacity=".28"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="shadow" x="-24" y="-18" width="176" height="176" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="16" stdDeviation="14" flood-color="#001a3d" flood-opacity=".38"/>
+    </filter>
+  </defs>
+  <rect width="128" height="128" rx="30" fill="#06070a"/>
+  <g filter="url(#shadow)">
+    <path d="M31 38.5C31 31.596 36.596 26 43.5 26h41C91.404 26 97 31.596 97 38.5v51C97 96.404 91.404 102 84.5 102h-41C36.596 102 31 96.404 31 89.5v-51Z" fill="url(#plate)"/>
+    <path d="M40 45.75C40 40.365 44.365 36 49.75 36h28.5C83.635 36 88 40.365 88 45.75v36.5C88 87.635 83.635 92 78.25 92h-28.5C44.365 92 40 87.635 40 82.25v-36.5Z" fill="#fff" fill-opacity=".12"/>
+    <path d="M49 50h30M49 64h30M49 78h20" stroke="#fff" stroke-width="6" stroke-linecap="round" opacity=".92"/>
+    <path d="M31 38.5C31 31.596 36.596 26 43.5 26h41C91.404 26 97 31.596 97 38.5v51C97 96.404 91.404 102 84.5 102h-41C36.596 102 31 96.404 31 89.5v-51Z" fill="url(#shine)"/>
+    <path d="M43.5 27.5h41c6.075 0 11 4.925 11 11v51c0 6.075-4.925 11-11 11h-41c-6.075 0-11-4.925-11-11v-51c0-6.075 4.925-11 11-11Z" stroke="#fff" stroke-opacity=".38" stroke-width="3"/>
+  </g>
+</svg>
