@@ -39,7 +39,13 @@ const elements = {
   daemonState: document.querySelector("#daemon-state"),
   daemonUrl: document.querySelector("#daemon-url"),
   dimmer: document.querySelector("#screen-dimmer"),
+  dockRefreshButton: document.querySelector("#dock-refresh-button"),
   cpuDetail: document.querySelector("#cpu-detail"),
+  homeCpu: document.querySelector("#home-cpu"),
+  homeDaemonPill: document.querySelector("#home-daemon-pill"),
+  homeMacSubtitle: document.querySelector("#home-mac-subtitle"),
+  homeMemory: document.querySelector("#home-memory"),
+  homeTemperature: document.querySelector("#home-temperature"),
   macMetrics: document.querySelector("#mac-metrics"),
   memoryDetail: document.querySelector("#memory-detail"),
   ipDetail: document.querySelector("#ip-detail"),
@@ -122,6 +128,8 @@ function setConnectionState(online) {
   elements.daemonState.classList.toggle("is-online", online);
   elements.daemonState.classList.toggle("is-offline", !online);
   elements.daemonLabel.textContent = online ? "Connecté" : "Hors ligne";
+  elements.homeDaemonPill.textContent = online ? "Connecté" : "Hors ligne";
+  elements.homeDaemonPill.classList.toggle("is-online", online);
 }
 
 function applyBrightness(value) {
@@ -210,6 +218,7 @@ function updateMachineInfo() {
   }
   elements.ipDetail.textContent = host;
   elements.daemonUrl.textContent = `${isBluetoothTarget ? "Bluetooth/PAN" : "Réseau"} · ${daemonBaseUrl}`;
+  elements.homeMacSubtitle.textContent = `${isBluetoothTarget ? "Bluetooth/PAN" : "Réseau"} · ${host}`;
 }
 
 function updateMacMetrics(metrics = null) {
@@ -233,6 +242,12 @@ function updateMacMetrics(metrics = null) {
       : "--°C";
 
   elements.macMetrics.textContent = `CPU ${cpuLabel} · RAM ${memoryLabel} · Temp ${temperatureLabel}`;
+  elements.homeCpu.textContent = cpuLabel;
+  elements.homeMemory.textContent =
+    Number.isFinite(memoryUsedBytes) && Number.isFinite(memoryTotalBytes)
+      ? formatMemoryPair(memoryUsedBytes, memoryTotalBytes)
+      : memoryLabel;
+  elements.homeTemperature.textContent = temperatureLabel;
   elements.cpuDetail.textContent = Number.isFinite(cpuPercent) ? formatPercent(cpuPercent) : "--%";
   elements.memoryDetail.textContent =
     Number.isFinite(memoryUsedBytes) && Number.isFinite(memoryTotalBytes)
@@ -523,6 +538,10 @@ elements.controlCenterButton.addEventListener("click", () => {
 });
 
 elements.refreshButton.addEventListener("click", refreshStatus);
+elements.dockRefreshButton.addEventListener("click", () => {
+  refreshSurfaceStatus();
+  refreshStatus();
+});
 
 elements.bluetoothScanButton.addEventListener("click", () => {
   sendBluetoothControl("scan");

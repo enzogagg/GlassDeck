@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="google" content="notranslate" />
     <title>GlassDeck Surface</title>
-    <link rel="stylesheet" href="./styles.css?v=4" />
+    <link rel="stylesheet" href="./styles.css?v=5" />
   </head>
   <body>
     <div id="screen-dimmer" class="screen-dimmer" aria-hidden="true"></div>
@@ -36,7 +36,48 @@
         </section>
       </header>
 
-      <section class="home-surface" aria-label="Accueil Surface"></section>
+      <section class="home-surface" aria-label="Accueil Surface">
+        <div class="desktop-widgets">
+          <section class="desktop-widget mac-widget">
+            <div class="widget-header">
+              <span class="widget-kicker">Mac</span>
+              <span id="home-daemon-pill" class="widget-pill">Hors ligne</span>
+            </div>
+            <strong id="home-mac-title">GlassDeck</strong>
+            <small id="home-mac-subtitle">--</small>
+          </section>
+
+          <section class="desktop-widget metrics-widget">
+            <div>
+              <span>CPU</span>
+              <strong id="home-cpu">--</strong>
+            </div>
+            <div>
+              <span>RAM</span>
+              <strong id="home-memory">--</strong>
+            </div>
+            <div>
+              <span>Temp</span>
+              <strong id="home-temperature">--</strong>
+            </div>
+          </section>
+        </div>
+
+        <nav class="action-dock" aria-label="Actions GlassDeck">
+          <button class="dock-button" type="button" data-action="ping" aria-label="Ping Mac">
+            <span>⌁</span>
+            <small>Ping</small>
+          </button>
+          <button class="dock-button" type="button" data-action="open-applications" aria-label="Applications Mac">
+            <span>▦</span>
+            <small>Apps</small>
+          </button>
+          <button id="dock-refresh-button" class="dock-button" type="button" aria-label="Actualiser">
+            <span>↻</span>
+            <small>Sync</small>
+          </button>
+        </nav>
+      </section>
 
       <aside
         id="control-center"
@@ -44,7 +85,7 @@
         aria-label="Centre de contrôle"
         aria-hidden="true"
       >
-        <div class="control-grid">
+        <div class="control-panel">
           <section class="control-card connection-card">
             <div>
               <span class="control-label">Mac</span>
@@ -72,7 +113,7 @@
 
           <section class="control-card status-card">
             <div>
-              <span class="control-label">Installation</span>
+              <span class="control-label">Install</span>
               <strong id="install-status">--</strong>
             </div>
             <div>
@@ -167,6 +208,6 @@
       </aside>
     </main>
 
-    <script src="./app.js?v=11" type="module"></script>
+    <script src="./app.js?v=12" type="module"></script>
   </body>
 </html>
