@@ -158,6 +158,10 @@ button {
   background: rgba(255, 255, 255, 0.07);
 }
 
+.menu-chip-metrics {
+  max-width: 300px;
+}
+
 .control-button {
   display: grid;
   place-items: center;
@@ -297,6 +301,39 @@ button {
   min-height: 86px;
 }
 
+.telemetry-card {
+  grid-column: span 2;
+  min-height: 118px;
+}
+
+.telemetry-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.telemetry-grid div {
+  min-width: 0;
+}
+
+.telemetry-grid span {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 760;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.telemetry-grid strong {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.94rem;
+}
+
 .slider-header {
   display: flex;
   align-items: center;
@@ -350,7 +387,8 @@ input[type="range"] {
   }
 
   .brand-button span:last-child,
-  #machine-ip {
+  #machine-ip,
+  .menu-chip-metrics {
     display: none;
   }
 
@@ -370,5 +408,9 @@ input[type="range"] {
 
   .control-grid {
     border-radius: 20px;
+  }
+
+  .telemetry-grid {
+    grid-template-columns: 1fr;
   }
 }

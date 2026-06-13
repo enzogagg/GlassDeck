@@ -5,6 +5,9 @@ Touch-first Surface interface for GlassDeck.
 The current home screen is intentionally blank. It only shows a macOS-inspired
 horizontal system bar and a floating control center.
 
+The bar surfaces the Mac daemon connection state plus live Mac CPU, RAM, and
+temperature metrics, alongside the Surface battery and clock.
+
 ## Run Locally
 
 From the repository root:
@@ -81,6 +84,7 @@ The control center currently shows:
 
 - Mac daemon connection state.
 - Target daemon host/IP.
+- Mac CPU, RAM, and temperature snapshot.
 - Surface battery, when the browser exposes the Battery Status API.
 - Local UI brightness dimming.
 - Placeholder volume state.

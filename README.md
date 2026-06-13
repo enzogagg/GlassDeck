@@ -300,12 +300,14 @@ Current action IDs:
 
 The Surface UI is intentionally minimal for now: a blank home surface with a
 macOS-style horizontal system bar. The bar shows daemon connectivity, the target
-machine host/IP, Surface battery when supported by the browser, and a clock.
+machine host/IP, Mac CPU/RAM/temperature metrics, Surface battery when supported
+by the browser, and a clock.
 
 The control center button opens quick controls for:
 
 - Mac daemon status and refresh.
 - Target daemon host/IP.
+- Mac CPU, RAM, and temperature snapshot.
 - Surface battery state.
 - Local UI brightness dimming.
 - Placeholder volume state.
@@ -329,6 +331,8 @@ Bluetooth PAN automatically and shows the selected target in the control center.
 Browser limitations:
 
 - The battery value depends on `navigator.getBattery()` support.
+- Mac temperature is shown when the daemon can read it from a local sensor tool
+  such as `osx-cpu-temp`; otherwise it stays unavailable.
 - Direct hardware brightness and volume control need a Linux-side bridge later;
   the current brightness control dims the web UI locally.
 

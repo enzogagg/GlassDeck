@@ -16,6 +16,7 @@ const state = {
   autoDaemonUrl: !storedDaemonBaseUrl,
   brightness: Number(localStorage.getItem("glassdeck-brightness") || "100"),
   volume: Number(localStorage.getItem("glassdeck-volume") || "70"),
+  metrics: null,
 };
 
 const elements = {
@@ -31,10 +32,15 @@ const elements = {
   daemonState: document.querySelector("#daemon-state"),
   daemonUrl: document.querySelector("#daemon-url"),
   dimmer: document.querySelector("#screen-dimmer"),
+  cpuDetail: document.querySelector("#cpu-detail"),
+  macMetrics: document.querySelector("#mac-metrics"),
+  macMetricsDetail: document.querySelector("#mac-metrics-detail"),
+  memoryDetail: document.querySelector("#memory-detail"),
   ipDetail: document.querySelector("#ip-detail"),
   machineIp: document.querySelector("#machine-ip"),
   refreshButton: document.querySelector("#refresh-button"),
   surfaceIp: document.querySelector("#surface-ip"),
+  temperatureDetail: document.querySelector("#temperature-detail"),
   quitButton: document.querySelector("#quit-button"),
   volumeSlider: document.querySelector("#volume-slider"),
   volumeValue: document.querySelector("#volume-value"),
@@ -73,6 +79,31 @@ function updateClock() {
     minute: "2-digit",
     timeZone: "Europe/Paris",
   }).format(now);
+}
+
+function formatBytes(bytes) {
+  if (!Number.isFinite(bytes) || bytes <= 0) {
+    return "--";
+  }
+
+  const units = ["B", "KB", "MB", "GB", "TB"];
+  let value = bytes;
+  let unit = 0;
+
+  while (value >= 1024 && unit < units.length - 1) {
+    value /= 1024;
+    unit += 1;
+  }
+
+  return `${value >= 10 || unit === 0 ? Math.round(value) : value.toFixed(1)} ${units[unit]}`;
+}
+
+function formatPercent(value) {
+  return Number.isFinite(value) ? `${Math.round(value)}%` : "--%";
+}
+
+function formatTemperature(value) {
+  return Number.isFinite(value) ? `${Math.round(value)}°C` : "--°";
 }
 
 function setControlCenterOpen(open) {
@@ -170,6 +201,40 @@ function updateMachineInfo() {
   elements.daemonUrl.textContent = daemonBaseUrl;
 }
 
+function updateMacMetrics(metrics = null) {
+  state.metrics = metrics;
+
+  const cpuPercent = metrics?.cpuPercent ?? null;
+  const memoryPercent = metrics?.memoryPercent ?? null;
+  const temperature = metrics?.temperatureCelsius ?? null;
+  const memoryUsedBytes = metrics?.memoryUsedBytes ?? null;
+  const memoryTotalBytes = metrics?.memoryTotalBytes ?? null;
+
+  const cpuLabel = Number.isFinite(cpuPercent) ? formatPercent(cpuPercent) : "--";
+  const memoryLabel = Number.isFinite(memoryPercent) ? formatPercent(memoryPercent) : "--";
+  const temperatureLabel = Number.isFinite(temperature) ? formatTemperature(temperature) : "--";
+
+  elements.macMetrics.textContent = `CPU ${cpuLabel} · RAM ${memoryLabel} · Temp ${temperatureLabel}`;
+  elements.macMetricsDetail.textContent = metrics
+    ? `Actualisé ${new Intl.DateTimeFormat("fr-FR", {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      }).format(new Date())}`
+    : "--";
+
+  elements.cpuDetail.textContent = Number.isFinite(cpuPercent) ? formatPercent(cpuPercent) : "--%";
+  elements.memoryDetail.textContent =
+    Number.isFinite(memoryUsedBytes) && Number.isFinite(memoryTotalBytes)
+      ? `${formatBytes(memoryUsedBytes)} / ${formatBytes(memoryTotalBytes)}`
+      : Number.isFinite(memoryPercent)
+        ? formatPercent(memoryPercent)
+        : "--";
+  elements.temperatureDetail.textContent = Number.isFinite(temperature)
+    ? formatTemperature(temperature)
+    : "--°C";
+}
+
 function updateBatteryDisplay(snapshot) {
   const percent = snapshot.percent;
   const charging = snapshot.charging ? "En charge" : "Sur batterie";
@@ -264,9 +329,11 @@ async function refreshStatus() {
 
     const status = await response.json();
     state.actions = status.available_actions || fallbackActions;
+    updateMacMetrics(status.metrics || null);
     setConnectionState(true);
   } catch {
     state.actions = fallbackActions;
+    updateMacMetrics(null);
     setConnectionState(false);
   }
 }
@@ -344,6 +411,7 @@ updateMachineInfo();
 updateClock();
 applyBrightness(state.brightness);
 applyVolume(state.volume);
+updateMacMetrics(null);
 initBattery();
 refreshSurfaceStatus();
 refreshStatus();

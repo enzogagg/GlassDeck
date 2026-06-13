@@ -1,4 +1,5 @@
 import Foundation
+import Darwin
 import Network
 
 let config = DaemonConfig.fromEnvironment()
@@ -24,6 +25,7 @@ final class MacDaemon: @unchecked Sendable {
     private let config: DaemonConfig
     private let startedAt = Date()
     private let queue = DispatchQueue(label: "glassdeck.mac-daemon")
+    private let telemetry = MacTelemetrySampler()
     private let registry = ActionRegistry()
     private var listener: NWListener?
     private var connectedClients = 0
@@ -134,6 +136,7 @@ final class MacDaemon: @unchecked Sendable {
             version: "0.1.0",
             uptimeSeconds: UInt64(Date().timeIntervalSince(startedAt)),
             connectedClients: connectedClients,
+            metrics: telemetry.snapshot(),
             availableActions: registry.descriptors
         )
     }
@@ -384,11 +387,200 @@ struct ActionOutput {
     }
 }
 
+struct MacMetrics: Encodable {
+    let cpuPercent: Double?
+    let memoryPercent: Double?
+    let memoryUsedBytes: UInt64?
+    let memoryTotalBytes: UInt64?
+    let temperatureCelsius: Double?
+    let temperatureSource: String?
+}
+
+final class MacTelemetrySampler {
+    private var previousCPUInfo: host_cpu_load_info_data_t?
+    private var lastSnapshot: MacMetrics?
+    private var lastSnapshotAt: Date = .distantPast
+
+    init() {
+        previousCPUInfo = currentCPUInfo()
+    }
+
+    func snapshot() -> MacMetrics {
+        let now = Date()
+        if let lastSnapshot, now.timeIntervalSince(lastSnapshotAt) < 1 {
+            return lastSnapshot
+        }
+
+        let temperature = temperatureReading()
+        let metrics = MacMetrics(
+            cpuPercent: cpuUsagePercent(),
+            memoryPercent: memoryUsagePercent(),
+            memoryUsedBytes: memoryUsedBytes(),
+            memoryTotalBytes: ProcessInfo.processInfo.physicalMemory,
+            temperatureCelsius: temperature.value,
+            temperatureSource: temperature.source
+        )
+
+        lastSnapshot = metrics
+        lastSnapshotAt = now
+        return metrics
+    }
+
+    private func cpuUsagePercent() -> Double? {
+        guard let current = currentCPUInfo(), let previous = previousCPUInfo else {
+            return nil
+        }
+
+        let currentTicks = [
+            Double(current.cpu_ticks.0),
+            Double(current.cpu_ticks.1),
+            Double(current.cpu_ticks.2),
+            Double(current.cpu_ticks.3),
+        ]
+        let previousTicks = [
+            Double(previous.cpu_ticks.0),
+            Double(previous.cpu_ticks.1),
+            Double(previous.cpu_ticks.2),
+            Double(previous.cpu_ticks.3),
+        ]
+
+        let deltas = zip(currentTicks, previousTicks).map { max(0, $0.0 - $0.1) }
+        let total = deltas.reduce(0, +)
+        guard total > 0 else {
+            return nil
+        }
+
+        let active = deltas[0] + deltas[1] + deltas[3]
+        previousCPUInfo = current
+        return (active / total) * 100
+    }
+
+    private func memoryUsagePercent() -> Double? {
+        guard let usedBytes = memoryUsedBytes() else {
+            return nil
+        }
+
+        let totalBytes = ProcessInfo.processInfo.physicalMemory
+        guard totalBytes > 0 else {
+            return nil
+        }
+
+        return (Double(usedBytes) / Double(totalBytes)) * 100
+    }
+
+    private func currentCPUInfo() -> host_cpu_load_info_data_t? {
+        var info = host_cpu_load_info_data_t()
+        var count = mach_msg_type_number_t(
+            MemoryLayout<host_cpu_load_info_data_t>.size / MemoryLayout<integer_t>.size
+        )
+        let result = withUnsafeMutablePointer(to: &info) { pointer in
+            pointer.withMemoryRebound(to: integer_t.self, capacity: Int(count)) { rebound in
+                host_statistics(
+                    mach_host_self(),
+                    HOST_CPU_LOAD_INFO,
+                    rebound,
+                    &count
+                )
+            }
+        }
+
+        return result == KERN_SUCCESS ? info : nil
+    }
+
+    private func memoryUsedBytes() -> UInt64? {
+        var stats = vm_statistics64_data_t()
+        var count = mach_msg_type_number_t(
+            MemoryLayout<vm_statistics64_data_t>.size / MemoryLayout<integer_t>.size
+        )
+
+        let result = withUnsafeMutablePointer(to: &stats) { pointer in
+            pointer.withMemoryRebound(to: integer_t.self, capacity: Int(count)) { rebound in
+                host_statistics64(
+                    mach_host_self(),
+                    HOST_VM_INFO64,
+                    rebound,
+                    &count
+                )
+            }
+        }
+
+        guard result == KERN_SUCCESS else {
+            return nil
+        }
+
+        var pageSize: vm_size_t = 0
+        guard host_page_size(mach_host_self(), &pageSize) == KERN_SUCCESS, pageSize > 0 else {
+            return nil
+        }
+
+        let usedPages = stats.active_count + stats.wire_count + stats.compressor_page_count
+        return UInt64(usedPages) * UInt64(pageSize)
+    }
+
+    private func temperatureReading() -> (value: Double?, source: String?) {
+        let candidates = [
+            "osx-cpu-temp",
+            "/opt/homebrew/bin/osx-cpu-temp",
+            "/usr/local/bin/osx-cpu-temp",
+        ]
+
+        for candidate in candidates {
+            if let output = commandOutput(executable: candidate),
+               let temperature = parseTemperature(output) {
+                return (temperature, candidate)
+            }
+        }
+
+        return (nil, nil)
+    }
+
+    private func commandOutput(executable: String) -> String? {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
+        process.arguments = [executable]
+
+        let pipe = Pipe()
+        process.standardInput = FileHandle.nullDevice
+        process.standardOutput = pipe
+        process.standardError = Pipe()
+
+        do {
+            try process.run()
+            process.waitUntilExit()
+        } catch {
+            return nil
+        }
+
+        guard process.terminationStatus == 0 else {
+            return nil
+        }
+
+        return String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8)?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func parseTemperature(_ output: String) -> Double? {
+        let pattern = #"-?\d+(?:\.\d+)?"#
+        guard let regex = try? NSRegularExpression(pattern: pattern) else {
+            return nil
+        }
+
+        let range = NSRange(output.startIndex..<output.endIndex, in: output)
+        guard let match = regex.firstMatch(in: output, range: range),
+              let matchRange = Range(match.range, in: output) else {
+            return nil
+        }
+
+        return Double(output[matchRange])
+    }
+}
+
 struct StatusSnapshot: Encodable {
     let daemonName: String
     let version: String
     let uptimeSeconds: UInt64
     let connectedClients: Int
+    let metrics: MacMetrics
     let availableActions: [ActionDescriptor]
 }
 
