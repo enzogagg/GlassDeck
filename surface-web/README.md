@@ -70,9 +70,10 @@ Bluetooth PAN or the local network automatically.
 
 The control center currently shows:
 
+- Installation status.
 - Mac daemon connection state.
 - Target daemon host/IP.
-- Bluetooth scan, one-time Mac validation, and reconnect state.
+- Bluetooth scan, one-time Mac validation, reconnect state, and forget control.
 - Mac CPU, RAM, and temperature snapshot.
 - Surface battery, when the browser exposes the Battery Status API.
 - Local UI brightness dimming.

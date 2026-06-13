@@ -296,6 +296,20 @@ button {
   font-size: 1.1rem;
 }
 
+.button-row {
+  display: flex;
+  gap: 8px;
+}
+
+.danger-icon-button {
+  color: var(--red);
+}
+
+.danger-icon-button:disabled {
+  cursor: default;
+  opacity: 0.35;
+}
+
 .slider-card {
   grid-column: span 2;
   min-height: 86px;
@@ -309,6 +323,18 @@ button {
 .network-card {
   grid-column: span 2;
   min-height: 96px;
+}
+
+.status-card {
+  display: grid;
+  grid-column: span 2;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  min-height: 82px;
+}
+
+.status-card div {
+  min-width: 0;
 }
 
 .network-grid {
@@ -352,6 +378,10 @@ button {
 .device-button:disabled {
   cursor: default;
   opacity: 0.72;
+}
+
+.device-button.is-selected {
+  background: rgba(10, 132, 255, 0.22);
 }
 
 .device-button span,
@@ -481,6 +511,10 @@ input[type="range"] {
   }
 
   .network-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .status-card {
     grid-template-columns: 1fr;
   }
 }

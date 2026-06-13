@@ -12,6 +12,7 @@ const state = {
   actions: fallbackActions,
   battery: null,
   bluetooth: null,
+  selectedBluetoothAddress: null,
   controlTimers: new Map(),
   online: false,
   autoDaemonUrl: !storedDaemonBaseUrl,
@@ -25,8 +26,10 @@ const elements = {
   batteryExtra: document.querySelector("#battery-extra"),
   batteryStatus: document.querySelector("#battery-status"),
   bluetoothDevices: document.querySelector("#bluetooth-devices"),
+  bluetoothForgetButton: document.querySelector("#bluetooth-forget-button"),
   bluetoothLabel: document.querySelector("#bluetooth-label"),
   bluetoothScanButton: document.querySelector("#bluetooth-scan-button"),
+  bluetoothStatus: document.querySelector("#bluetooth-status"),
   brightnessSlider: document.querySelector("#brightness-slider"),
   brightnessValue: document.querySelector("#brightness-value"),
   clock: document.querySelector("#clock"),
@@ -40,7 +43,9 @@ const elements = {
   macMetrics: document.querySelector("#mac-metrics"),
   memoryDetail: document.querySelector("#memory-detail"),
   ipDetail: document.querySelector("#ip-detail"),
+  installStatus: document.querySelector("#install-status"),
   machineIp: document.querySelector("#machine-ip"),
+  macFoundStatus: document.querySelector("#mac-found-status"),
   refreshButton: document.querySelector("#refresh-button"),
   surfaceIp: document.querySelector("#surface-ip"),
   temperatureDetail: document.querySelector("#temperature-detail"),
@@ -157,6 +162,10 @@ function updateControls(controls = {}) {
   }
 }
 
+function updateInstallDisplay(install = {}) {
+  elements.installStatus.textContent = install.ok ? "OK" : "Incomplet";
+}
+
 function queueSurfaceControl(control, value) {
   clearTimeout(state.controlTimers.get(control));
   state.controlTimers.set(
@@ -266,13 +275,19 @@ function updateBluetoothDisplay(bluetooth = {}) {
   const devices = bluetooth.devices || [];
   const connected = devices.find((device) => device.connected);
   const preferred = connected || devices.find((device) => device.mac_candidate) || devices[0];
+  state.selectedBluetoothAddress = preferred?.address || null;
+  elements.bluetoothForgetButton.disabled = !state.selectedBluetoothAddress;
 
   if (!bluetooth.ready) {
     elements.bluetoothLabel.textContent = "Indisponible";
+    elements.bluetoothStatus.textContent = "Indispo";
+    elements.macFoundStatus.textContent = "Non";
     elements.bluetoothDevices.innerHTML = "";
     return;
   }
 
+  elements.bluetoothStatus.textContent = connected ? "Connecté" : preferred?.trusted ? "Validé" : "Prêt";
+  elements.macFoundStatus.textContent = bluetooth.daemon_reachable || bluetooth.recommended_url ? "Oui" : "Non";
   elements.bluetoothLabel.textContent = connected
     ? connected.name || connected.address
     : preferred
@@ -299,6 +314,7 @@ function updateBluetoothDisplay(bluetooth = {}) {
     button.type = "button";
     button.dataset.bluetoothAddress = device.address;
     button.disabled = device.connected;
+    button.classList.toggle("is-selected", device.address === state.selectedBluetoothAddress);
     name.textContent = device.name || device.address;
     status.textContent = deviceStatusLabel(device);
     button.append(name, status);
@@ -364,6 +380,7 @@ async function refreshSurfaceStatus() {
     const status = await response.json();
     updateSurfaceIp(status.addresses || []);
     updateControls(status.controls || {});
+    updateInstallDisplay(status.install || {});
     updateBluetoothDisplay(status.bluetooth || {});
     syncBrightnessSnapshot(status.controls?.brightness);
     const daemonChanged = syncBluetoothDaemon(status.bluetooth);
@@ -377,6 +394,7 @@ async function refreshSurfaceStatus() {
     }
   } catch {
     updateSurfaceIp([]);
+    updateInstallDisplay({});
     updateBluetoothDisplay({});
   }
 
@@ -508,6 +526,14 @@ elements.refreshButton.addEventListener("click", refreshStatus);
 
 elements.bluetoothScanButton.addEventListener("click", () => {
   sendBluetoothControl("scan");
+});
+
+elements.bluetoothForgetButton.addEventListener("click", () => {
+  if (!state.selectedBluetoothAddress) {
+    return;
+  }
+
+  sendBluetoothControl("forget", { address: state.selectedBluetoothAddress });
 });
 
 elements.brightnessSlider.addEventListener("input", (event) => {

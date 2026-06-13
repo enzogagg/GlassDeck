@@ -82,6 +82,9 @@ jobs:
           sh -n scripts/run-surface.sh
           sh -n scripts/run-surface-web.sh
           sh -n scripts/restart-surface.sh
+          bash -n scripts/install-mac.sh
+          bash -n scripts/mac-daemon-service.sh
+          bash -n scripts/package-mac-app.sh
           bash -n scripts/install-surface.sh
           bash -n scripts/install-ui.sh
 
@@ -129,6 +132,13 @@ jobs:
           mkdir -p dist/mac-daemon
           cp mac-daemon/.build/release/glassdeck-mac-daemon dist/mac-daemon/
           cp scripts/run-mac-daemon.sh dist/mac-daemon/
+          cp scripts/install-mac.sh dist/mac-daemon/
+          cp scripts/mac-daemon-service.sh dist/mac-daemon/
+
+      - name: Stage Mac app
+        run: |
+          scripts/package-mac-app.sh
+          tar -czf dist/glassdeck-mac-app.tar.gz -C dist GlassDeck.app
 
       - name: Stage Surface web
         run: |
@@ -147,6 +157,12 @@ jobs:
         with:
           name: glassdeck-mac-daemon
           path: dist/mac-daemon/
+
+      - name: Upload Mac app artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: glassdeck-mac-app
+          path: dist/glassdeck-mac-app.tar.gz
 
       - name: Upload Surface web artifact
         uses: actions/upload-artifact@v4

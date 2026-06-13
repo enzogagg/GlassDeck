@@ -36,7 +36,7 @@ cd GlassDeck
 git pull
 ```
 
-### 2. Install Mac requirements
+### 2. Install the Mac daemon and app
 
 Install Apple's command line tools if Swift is not available:
 
@@ -44,11 +44,14 @@ Install Apple's command line tools if Swift is not available:
 xcode-select --install
 ```
 
-Check Swift:
+Then install the LaunchAgent:
 
 ```sh
-swift --version
+./scripts/install-mac.sh
 ```
+
+This creates `~/Library/LaunchAgents/ovh.ega.glassdeck.mac-daemon.plist`,
+starts the daemon at login, and keeps it alive.
 
 ### 3. Install the Surface deck
 
@@ -101,7 +104,7 @@ Surface bridge can also find `:7878` directly.
 On the Mac:
 
 ```sh
-./scripts/run-mac-daemon.sh
+./scripts/install-mac.sh
 ```
 
 On the Surface:
@@ -244,6 +247,14 @@ with:
 GLASSDECK_MAC_DAEMON_ADDR=127.0.0.1:9000 ./scripts/run-mac-daemon.sh
 ```
 
+Manage the installed LaunchAgent:
+
+```sh
+./scripts/mac-daemon-service.sh status
+./scripts/mac-daemon-service.sh restart
+./scripts/mac-daemon-service.sh stop
+```
+
 HTTP endpoints:
 
 - `GET /status`: daemon uptime, connected clients, and available actions.
@@ -267,6 +278,8 @@ The control center button opens quick controls for:
 
 - Mac daemon status and refresh.
 - Target daemon host/IP.
+- Installation status, Bluetooth status, and Mac discovery status.
+- Bluetooth scan, reconnect, and forget controls.
 - Mac CPU, RAM, and temperature snapshot.
 - Surface battery state.
 - Local UI brightness dimming.

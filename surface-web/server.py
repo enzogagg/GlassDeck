@@ -76,6 +76,7 @@ def bluetooth_daemon_snapshot():
         "candidates": candidates,
         "devices": bluetooth_devices(),
         "ready": bluetooth_ready(),
+        "daemon_reachable": any(candidate["reachable"] for candidate in candidates),
         "recommended_url": recommended,
     }
     _daemon_probe_cache["timestamp"] = now
@@ -275,6 +276,40 @@ def connect_bluetooth_device(address):
         "bluetooth": snapshot,
         "device": device,
         "error": None if connected else "; ".join(errors[-2:]) or "Connexion Bluetooth non établie",
+    }
+
+
+def forget_bluetooth_device(address):
+    if not bluetooth_ready():
+        return {"ok": False, "error": "bluetoothctl indisponible"}
+
+    if not isinstance(address, str) or not address:
+        return {"ok": False, "error": "Adresse Bluetooth manquante"}
+
+    try:
+        subprocess.check_output(["bluetoothctl", "remove", address], stderr=subprocess.STDOUT, text=True, timeout=10)
+    except (OSError, subprocess.SubprocessError) as error:
+        output = getattr(error, "output", None)
+        return {"ok": False, "error": output.strip() if output else str(error)}
+
+    _daemon_probe_cache["value"] = None
+    _bluetooth_scan_cache["timestamp"] = 0.0
+    return {"ok": True, "bluetooth": bluetooth_daemon_snapshot()}
+
+
+def install_snapshot():
+    commands = {
+        "python3": shutil.which("python3") is not None,
+        "bluetoothctl": shutil.which("bluetoothctl") is not None,
+        "cage": shutil.which("cage") is not None,
+        "chromium": any(shutil.which(command) is not None for command in ("chromium", "chromium-browser", "google-chrome")),
+        "brightnessctl": shutil.which("brightnessctl") is not None,
+        "volume": volume_backend() is not None,
+    }
+
+    return {
+        "ok": all(commands.values()),
+        "commands": commands,
     }
 
 
@@ -591,6 +626,7 @@ class GlassDeckHandler(SimpleHTTPRequestHandler):
                     "battery": battery_snapshot(),
                     "bluetooth": bluetooth_daemon_snapshot(),
                     "controls": control_snapshot(),
+                    "install": install_snapshot(),
                 }
             )
             return
@@ -627,6 +663,10 @@ class GlassDeckHandler(SimpleHTTPRequestHandler):
 
             if action == "connect":
                 self.write_json(connect_bluetooth_device(payload.get("address")))
+                return
+
+            if action == "forget":
+                self.write_json(forget_bluetooth_device(payload.get("address")))
                 return
 
             self.send_error(400, "Action Bluetooth inconnue")

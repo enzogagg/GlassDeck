@@ -70,15 +70,35 @@
             </div>
           </section>
 
+          <section class="control-card status-card">
+            <div>
+              <span class="control-label">Installation</span>
+              <strong id="install-status">--</strong>
+            </div>
+            <div>
+              <span class="control-label">Bluetooth</span>
+              <strong id="bluetooth-status">--</strong>
+            </div>
+            <div>
+              <span class="control-label">Mac trouvé</span>
+              <strong id="mac-found-status">--</strong>
+            </div>
+          </section>
+
           <section class="control-card bluetooth-card">
             <div class="slider-header">
               <div>
                 <span class="control-label">Bluetooth</span>
                 <strong id="bluetooth-label">Recherche</strong>
               </div>
-              <button id="bluetooth-scan-button" class="icon-button" type="button" aria-label="Scanner Bluetooth">
-                ⌕
-              </button>
+              <div class="button-row">
+                <button id="bluetooth-scan-button" class="icon-button" type="button" aria-label="Scanner Bluetooth">
+                  ⌕
+                </button>
+                <button id="bluetooth-forget-button" class="icon-button danger-icon-button" type="button" aria-label="Oublier Bluetooth">
+                  ×
+                </button>
+              </div>
             </div>
             <div id="bluetooth-devices" class="device-list"></div>
           </section>
@@ -147,6 +167,6 @@
       </aside>
     </main>
 
-    <script src="./app.js?v=10" type="module"></script>
+    <script src="./app.js?v=11" type="module"></script>
   </body>
 </html>

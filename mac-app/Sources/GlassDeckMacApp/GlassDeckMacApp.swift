@@ -2,17 +2,35 @@ import SwiftUI
 
 @main
 struct GlassDeckMacApp: App {
+    @State private var model = DaemonModel()
+
     var body: some Scene {
         WindowGroup {
-            DashboardView()
+            DashboardView(model: model)
         }
         .windowStyle(.hiddenTitleBar)
         .defaultSize(width: 980, height: 680)
+
+        MenuBarExtra("GlassDeck", systemImage: "rectangle.connected.to.line.below") {
+            Button(model.isOnline ? "Daemon connecte" : "Daemon hors ligne") {
+                Task { await model.refresh() }
+            }
+            Divider()
+            Button("Demarrer le daemon") {
+                Task { await model.controlService(.start) }
+            }
+            Button("Redemarrer le daemon") {
+                Task { await model.controlService(.restart) }
+            }
+            Button("Arreter le daemon") {
+                Task { await model.controlService(.stop) }
+            }
+        }
     }
 }
 
 struct DashboardView: View {
-    @State private var model = DaemonModel()
+    let model: DaemonModel
 
     var body: some View {
         NavigationSplitView {
@@ -88,7 +106,7 @@ struct Header: View {
             Spacer()
 
             StatusPill(title: "Daemon", value: model.isOnline ? "Connecte" : "Hors ligne")
-            StatusPill(title: "Actions", value: "\(model.actions.count)")
+            StatusPill(title: "Surface", value: model.connectedClients > 0 ? "\(model.connectedClients) client" : "Aucune")
 
             Button(action: refresh) {
                 Label("Actualiser", systemImage: "arrow.clockwise")
@@ -127,8 +145,14 @@ struct ActionGrid: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Actions disponibles")
-                .font(.title2.bold())
+            HStack {
+                Text("Actions disponibles")
+                    .font(.title2.bold())
+                Spacer()
+                Text("\(model.enabledActionIds.count)/\(model.actions.count)")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(.secondary)
+            }
 
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 160), spacing: 14)], spacing: 14) {
                 ForEach(model.actions) { action in
@@ -160,6 +184,7 @@ struct ActionGrid: View {
                         .clipShape(RoundedRectangle(cornerRadius: 20))
                     }
                     .buttonStyle(.plain)
+                    .opacity(model.enabledActionIds.contains(action.id) ? 1 : 0.45)
                 }
             }
 
@@ -184,6 +209,26 @@ struct DetailPanel: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Daemon")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(.secondary)
+                    .textCase(.uppercase)
+
+                HStack(spacing: 8) {
+                    Button("Start") {
+                        Task { await model.controlService(.start) }
+                    }
+                    Button("Restart") {
+                        Task { await model.controlService(.restart) }
+                    }
+                    Button("Stop") {
+                        Task { await model.controlService(.stop) }
+                    }
+                }
+                .buttonStyle(.bordered)
+            }
+
             VStack(alignment: .leading, spacing: 6) {
                 Text("Derniere action")
                     .font(.caption.weight(.bold))
@@ -202,6 +247,21 @@ struct DetailPanel: View {
             HStack(spacing: 10) {
                 Metric(title: "Clients", value: "\(model.connectedClients)")
                 Metric(title: "Uptime", value: model.uptimeLabel)
+            }
+
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Actions UI")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(.secondary)
+                    .textCase(.uppercase)
+
+                ForEach(model.actions) { action in
+                    Toggle(action.label, isOn: Binding(
+                        get: { model.enabledActionIds.contains(action.id) },
+                        set: { model.setAction(action.id, enabled: $0) }
+                    ))
+                    .toggleStyle(.switch)
+                }
             }
         }
         .frame(width: 280)
@@ -250,6 +310,7 @@ struct GlassDeckBackground: View {
 @MainActor
 final class DaemonModel {
     var actions: [ActionDescriptor] = ActionDescriptor.fallback
+    var enabledActionIds: Set<String> = Set(ActionDescriptor.fallback.map(\.id))
     var connectedClients = 0
     var uptimeSeconds = 0
     var isOnline = false
@@ -257,6 +318,7 @@ final class DaemonModel {
     var lastMessage = "Le Mac attend le daemon GlassDeck."
 
     private let baseURL = URL(string: "http://127.0.0.1:7878")!
+    private let service = MacDaemonService()
 
     var uptimeLabel: String {
         uptimeSeconds < 60 ? "\(uptimeSeconds)s" : "\(uptimeSeconds / 60)m"
@@ -269,6 +331,9 @@ final class DaemonModel {
             let status = try JSONDecoder().decode(StatusSnapshot.self, from: data)
 
             actions = status.availableActions
+            if enabledActionIds.isEmpty {
+                enabledActionIds = Set(status.availableActions.map(\.id))
+            }
             connectedClients = status.connectedClients
             uptimeSeconds = status.uptimeSeconds
             isOnline = true
@@ -283,6 +348,12 @@ final class DaemonModel {
     }
 
     func execute(_ action: ActionDescriptor) async {
+        guard enabledActionIds.contains(action.id) else {
+            lastTitle = action.label
+            lastMessage = "Action desactivee dans l'app Mac."
+            return
+        }
+
         do {
             lastTitle = action.label
             lastMessage = "Execution en cours..."
@@ -305,6 +376,99 @@ final class DaemonModel {
             isOnline = false
             lastMessage = error.localizedDescription
         }
+    }
+
+    func setAction(_ id: String, enabled: Bool) {
+        if enabled {
+            enabledActionIds.insert(id)
+        } else {
+            enabledActionIds.remove(id)
+        }
+    }
+
+    func controlService(_ command: MacDaemonService.Command) async {
+        do {
+            lastTitle = command.title
+            lastMessage = "Commande service en cours..."
+            lastMessage = try await service.run(command)
+            try? await Task.sleep(for: .milliseconds(400))
+            await refresh()
+        } catch {
+            isOnline = false
+            lastTitle = "Service daemon"
+            lastMessage = error.localizedDescription
+        }
+    }
+}
+
+struct MacDaemonService {
+    enum Command: String {
+        case start
+        case stop
+        case restart
+        case status
+
+        var title: String {
+            switch self {
+            case .start: "Demarrage daemon"
+            case .stop: "Arret daemon"
+            case .restart: "Redemarrage daemon"
+            case .status: "Status daemon"
+            }
+        }
+    }
+
+    func run(_ command: Command) async throws -> String {
+        let script = try serviceScriptURL()
+        return try await Task.detached {
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
+            process.arguments = ["bash", script.path, command.rawValue]
+
+            let output = Pipe()
+            let error = Pipe()
+            process.standardOutput = output
+            process.standardError = error
+
+            try process.run()
+            process.waitUntilExit()
+
+            let outputText = String(data: output.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8)?
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            let errorText = String(data: error.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8)?
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+
+            guard process.terminationStatus == 0 else {
+                throw NSError(
+                    domain: "GlassDeckMacDaemonService",
+                    code: Int(process.terminationStatus),
+                    userInfo: [NSLocalizedDescriptionKey: errorText?.isEmpty == false ? errorText! : "Commande echouee"]
+                )
+            }
+
+            return outputText?.isEmpty == false ? outputText! : "Commande executee."
+        }.value
+    }
+
+    private func serviceScriptURL() throws -> URL {
+        let current = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+        let candidates = [
+            current.appending(path: "../scripts/mac-daemon-service.sh"),
+            current.appending(path: "scripts/mac-daemon-service.sh"),
+            URL(fileURLWithPath: Bundle.main.bundlePath).appending(path: "../../../scripts/mac-daemon-service.sh"),
+        ]
+
+        for candidate in candidates {
+            if FileManager.default.isExecutableFile(atPath: candidate.standardized.path) {
+                return candidate.standardized
+            }
+        }
+
+        throw NSError(
+            domain: "GlassDeckMacDaemonService",
+            code: 1,
+            userInfo: [NSLocalizedDescriptionKey: "scripts/mac-daemon-service.sh introuvable. Lance l'app depuis le repo ou installe le package Mac."]
+        )
     }
 }
 
