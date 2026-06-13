@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="google" content="notranslate" />
     <title>GlassDeck Surface</title>
-    <link rel="stylesheet" href="./styles.css?v=5" />
+    <link rel="stylesheet" href="./styles.css?v=6" />
   </head>
   <body>
     <div id="screen-dimmer" class="screen-dimmer" aria-hidden="true"></div>
@@ -37,7 +37,13 @@
       </header>
 
       <section class="home-surface" aria-label="Accueil Surface">
-        <div class="desktop-widgets">
+        <div class="desktop-stage" aria-hidden="true">
+          <span class="stage-line"></span>
+          <span class="stage-line"></span>
+          <span class="stage-line"></span>
+        </div>
+
+        <div class="desktop-widgets" aria-label="État GlassDeck">
           <section class="desktop-widget mac-widget">
             <div class="widget-header">
               <span class="widget-kicker">Mac</span>
@@ -86,7 +92,16 @@
         aria-hidden="true"
       >
         <div class="control-panel">
+          <header class="control-heading">
+            <div>
+              <span>GlassDeck</span>
+              <strong>Centre de contrôle</strong>
+            </div>
+            <small id="control-summary">Mac hors ligne</small>
+          </header>
+
           <section class="control-card connection-card">
+            <span class="card-symbol" aria-hidden="true">⌁</span>
             <div>
               <span class="control-label">Mac</span>
               <strong id="daemon-label">Connexion</strong>
@@ -98,12 +113,12 @@
 
           <section class="control-card network-card">
             <div class="network-grid">
-              <div>
+              <div class="network-tile">
                 <span class="control-label">Mac</span>
                 <strong id="ip-detail">--</strong>
                 <small id="daemon-url">--</small>
               </div>
-              <div>
+              <div class="network-tile">
                 <span class="control-label">Surface</span>
                 <strong id="surface-ip">127.0.0.1</strong>
                 <small>IP Locale</small>
@@ -145,6 +160,7 @@
           </section>
 
           <section class="control-card">
+            <span class="card-symbol muted-symbol" aria-hidden="true">⚡</span>
             <span class="control-label">Batterie</span>
             <strong id="battery-detail">Batterie inconnue</strong>
             <small id="battery-extra">API batterie non détectée</small>
@@ -208,6 +224,6 @@
       </aside>
     </main>
 
-    <script src="./app.js?v=12" type="module"></script>
+    <script src="./app.js?v=13" type="module"></script>
   </body>
 </html>

@@ -35,6 +35,7 @@ const elements = {
   clock: document.querySelector("#clock"),
   controlCenter: document.querySelector("#control-center"),
   controlCenterButton: document.querySelector("#control-center-button"),
+  controlSummary: document.querySelector("#control-summary"),
   daemonLabel: document.querySelector("#daemon-label"),
   daemonState: document.querySelector("#daemon-state"),
   daemonUrl: document.querySelector("#daemon-url"),
@@ -128,6 +129,7 @@ function setConnectionState(online) {
   elements.daemonState.classList.toggle("is-online", online);
   elements.daemonState.classList.toggle("is-offline", !online);
   elements.daemonLabel.textContent = online ? "Connecté" : "Hors ligne";
+  elements.controlSummary.textContent = online ? `Mac connecté · ${daemonHostLabel()}` : "Mac hors ligne";
   elements.homeDaemonPill.textContent = online ? "Connecté" : "Hors ligne";
   elements.homeDaemonPill.classList.toggle("is-online", online);
 }
