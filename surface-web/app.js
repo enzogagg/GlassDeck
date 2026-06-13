@@ -211,12 +211,18 @@ function updateMacMetrics(metrics = null) {
   const memoryPercent = readMetric(metrics, "memoryPercent", "memory_percent");
   const rawTemperature = readMetric(metrics, "temperatureCelsius", "temperature_celsius");
   const temperature = Number.isFinite(rawTemperature) && rawTemperature > 0 ? rawTemperature : null;
+  const temperatureSource = readMetric(metrics, "temperatureSource", "temperature_source");
   const memoryUsedBytes = readMetric(metrics, "memoryUsedBytes", "memory_used_bytes");
   const memoryTotalBytes = readMetric(metrics, "memoryTotalBytes", "memory_total_bytes");
 
   const cpuLabel = Number.isFinite(cpuPercent) ? formatPercent(cpuPercent) : "--";
   const memoryLabel = Number.isFinite(memoryPercent) ? formatPercent(memoryPercent) : "--";
   const temperatureLabel = Number.isFinite(temperature) ? formatTemperature(temperature) : "--";
+  const temperatureDetail = Number.isFinite(temperature)
+    ? formatTemperature(temperature)
+    : temperatureSource
+      ? "Indispo"
+      : "--°C";
 
   elements.macMetrics.textContent = `CPU ${cpuLabel} · RAM ${memoryLabel} · Temp ${temperatureLabel}`;
   elements.macMetricsDetail.textContent = metrics
@@ -237,7 +243,7 @@ function updateMacMetrics(metrics = null) {
         : "--";
   elements.temperatureDetail.textContent = Number.isFinite(temperature)
     ? formatTemperature(temperature)
-    : "--°C";
+    : temperatureDetail;
 }
 
 function updateBatteryDisplay(snapshot) {

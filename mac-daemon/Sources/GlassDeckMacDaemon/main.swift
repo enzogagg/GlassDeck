@@ -526,13 +526,15 @@ final class MacTelemetrySampler {
 
         for candidate in candidates {
             if let output = commandOutput(executable: candidate),
-               let temperature = parseTemperature(output),
-               temperature > 0 {
-                return (temperature, candidate)
+               let temperature = parseTemperature(output) {
+                if temperature > 0 {
+                    return (temperature, candidate)
+                }
+                return (nil, "\(candidate): unavailable")
             }
         }
 
-        return (nil, nil)
+        return (nil, "no-temperature-sensor")
     }
 
     private func commandOutput(executable: String) -> String? {
