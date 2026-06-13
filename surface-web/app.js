@@ -38,7 +38,6 @@ const elements = {
   dimmer: document.querySelector("#screen-dimmer"),
   cpuDetail: document.querySelector("#cpu-detail"),
   macMetrics: document.querySelector("#mac-metrics"),
-  macMetricsDetail: document.querySelector("#mac-metrics-detail"),
   memoryDetail: document.querySelector("#memory-detail"),
   ipDetail: document.querySelector("#ip-detail"),
   machineIp: document.querySelector("#machine-ip"),
@@ -225,15 +224,6 @@ function updateMacMetrics(metrics = null) {
       : "--°C";
 
   elements.macMetrics.textContent = `CPU ${cpuLabel} · RAM ${memoryLabel} · Temp ${temperatureLabel}`;
-  elements.macMetricsDetail.textContent = metrics
-    ? `Maj ${new Intl.DateTimeFormat("fr-FR", {
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-        timeZone: "Europe/Paris",
-      }).format(new Date())}`
-    : "--";
-
   elements.cpuDetail.textContent = Number.isFinite(cpuPercent) ? formatPercent(cpuPercent) : "--%";
   elements.memoryDetail.textContent =
     Number.isFinite(memoryUsedBytes) && Number.isFinite(memoryTotalBytes)
