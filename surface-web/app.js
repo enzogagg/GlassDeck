@@ -110,6 +110,10 @@ function formatTemperature(value) {
   return Number.isFinite(value) ? `${Math.round(value)}°C` : "--°";
 }
 
+function readMetric(metrics, camelKey, snakeKey) {
+  return metrics?.[camelKey] ?? metrics?.[snakeKey] ?? null;
+}
+
 function setControlCenterOpen(open) {
   elements.controlCenter.classList.toggle("is-open", open);
   elements.controlCenter.setAttribute("aria-hidden", String(!open));
@@ -208,11 +212,11 @@ function updateMachineInfo() {
 function updateMacMetrics(metrics = null) {
   state.metrics = metrics;
 
-  const cpuPercent = metrics?.cpuPercent ?? null;
-  const memoryPercent = metrics?.memoryPercent ?? null;
-  const temperature = metrics?.temperatureCelsius ?? null;
-  const memoryUsedBytes = metrics?.memoryUsedBytes ?? null;
-  const memoryTotalBytes = metrics?.memoryTotalBytes ?? null;
+  const cpuPercent = readMetric(metrics, "cpuPercent", "cpu_percent");
+  const memoryPercent = readMetric(metrics, "memoryPercent", "memory_percent");
+  const temperature = readMetric(metrics, "temperatureCelsius", "temperature_celsius");
+  const memoryUsedBytes = readMetric(metrics, "memoryUsedBytes", "memory_used_bytes");
+  const memoryTotalBytes = readMetric(metrics, "memoryTotalBytes", "memory_total_bytes");
 
   const cpuLabel = Number.isFinite(cpuPercent) ? formatPercent(cpuPercent) : "--";
   const memoryLabel = Number.isFinite(memoryPercent) ? formatPercent(memoryPercent) : "--";
@@ -439,6 +443,32 @@ async function refreshStatus() {
     const status = await response.json();
     state.actions = status.available_actions || fallbackActions;
     updateMacMetrics(status.metrics || null);
+    setConnectionState(true);
+  } catch {
+    await refreshStatusThroughBridge();
+  }
+}
+
+async function refreshStatusThroughBridge() {
+  try {
+    const response = await fetch("/mac-status", {
+      cache: "no-store",
+      method: "GET",
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    const result = await response.json();
+    if (!result.ok || !result.status) {
+      throw new Error("Mac indisponible");
+    }
+
+    setDaemonBaseUrl(result.url);
+    updateBluetoothDisplay(result.bluetooth || {});
+    state.actions = result.status.available_actions || fallbackActions;
+    updateMacMetrics(result.status.metrics || null);
     setConnectionState(true);
   } catch {
     state.actions = fallbackActions;

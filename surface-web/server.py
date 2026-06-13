@@ -411,6 +411,40 @@ def daemon_reachable(base_url, timeout=0.35):
         return False
 
 
+def daemon_json(base_url, timeout=1.2):
+    try:
+        with urllib.request.urlopen(f"{base_url}/status", timeout=timeout) as response:
+            if not 200 <= response.status < 300:
+                return None
+
+            return json.loads(response.read().decode("utf-8"))
+    except (OSError, urllib.error.URLError, json.JSONDecodeError, UnicodeDecodeError):
+        return None
+
+
+def mac_status_snapshot():
+    bluetooth = bluetooth_daemon_snapshot()
+    for candidate in bluetooth.get("candidates", []):
+        if not candidate.get("reachable"):
+            continue
+
+        status = daemon_json(candidate["url"])
+        if status is not None:
+            return {
+                "ok": True,
+                "url": candidate["url"],
+                "status": status,
+                "bluetooth": bluetooth,
+            }
+
+    return {
+        "ok": False,
+        "url": bluetooth.get("recommended_url"),
+        "status": None,
+        "bluetooth": bluetooth,
+    }
+
+
 def battery_snapshot():
     power_root = Path("/sys/class/power_supply")
     batteries = sorted(power_root.glob("BAT*"))
@@ -559,6 +593,10 @@ class GlassDeckHandler(SimpleHTTPRequestHandler):
                     "controls": control_snapshot(),
                 }
             )
+            return
+
+        if self.path.split("?", 1)[0] == "/mac-status":
+            self.write_json(mac_status_snapshot())
             return
 
         super().do_GET()
