@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="google" content="notranslate" />
     <title>GlassDeck Surface</title>
-    <link rel="stylesheet" href="./styles.css?v=6" />
+    <link rel="stylesheet" href="./styles.css?v=7" />
   </head>
   <body>
     <div id="screen-dimmer" class="screen-dimmer" aria-hidden="true"></div>
@@ -14,7 +14,7 @@
       <header class="menu-bar" aria-label="Barre système Surface">
         <section class="menu-left">
           <button class="brand-button" type="button" aria-label="GlassDeck">
-            <span class="brand-mark">◆</span>
+            <span class="brand-mark" aria-hidden="true"></span>
             <span>GlassDeck</span>
           </button>
           <span id="daemon-state" class="status-dot" aria-label="État du Mac"></span>
@@ -22,7 +22,7 @@
 
         <section class="menu-right" aria-label="État rapide">
           <span id="mac-metrics" class="menu-chip menu-chip-metrics">CPU -- · RAM -- · Temp --</span>
-          <span id="battery-status" class="menu-chip">🔋 --%</span>
+          <span id="battery-status" class="menu-chip">Batterie --%</span>
           <button
             id="control-center-button"
             class="control-button"
@@ -37,49 +37,19 @@
       </header>
 
       <section class="home-surface" aria-label="Accueil Surface">
-        <div class="desktop-stage" aria-hidden="true">
-          <span class="stage-line"></span>
-          <span class="stage-line"></span>
-          <span class="stage-line"></span>
-        </div>
-
-        <div class="desktop-widgets" aria-label="État GlassDeck">
-          <section class="desktop-widget mac-widget">
-            <div class="widget-header">
-              <span class="widget-kicker">Mac</span>
-              <span id="home-daemon-pill" class="widget-pill">Hors ligne</span>
-            </div>
-            <strong id="home-mac-title">GlassDeck</strong>
-            <small id="home-mac-subtitle">--</small>
-          </section>
-
-          <section class="desktop-widget metrics-widget">
-            <div>
-              <span>CPU</span>
-              <strong id="home-cpu">--</strong>
-            </div>
-            <div>
-              <span>RAM</span>
-              <strong id="home-memory">--</strong>
-            </div>
-            <div>
-              <span>Temp</span>
-              <strong id="home-temperature">--</strong>
-            </div>
-          </section>
-        </div>
+        <div class="desktop-wallpaper" aria-hidden="true"></div>
 
         <nav class="action-dock" aria-label="Actions GlassDeck">
           <button class="dock-button" type="button" data-action="ping" aria-label="Ping Mac">
-            <span>⌁</span>
+            <span class="dock-icon dock-icon-ping" aria-hidden="true"></span>
             <small>Ping</small>
           </button>
           <button class="dock-button" type="button" data-action="open-applications" aria-label="Applications Mac">
-            <span>▦</span>
+            <span class="dock-icon dock-icon-apps" aria-hidden="true"></span>
             <small>Apps</small>
           </button>
           <button id="dock-refresh-button" class="dock-button" type="button" aria-label="Actualiser">
-            <span>↻</span>
+            <span class="dock-icon dock-icon-sync" aria-hidden="true"></span>
             <small>Sync</small>
           </button>
         </nav>
@@ -101,7 +71,7 @@
           </header>
 
           <section class="control-card connection-card">
-            <span class="card-symbol" aria-hidden="true">⌁</span>
+            <span class="card-symbol control-symbol-link" aria-hidden="true"></span>
             <div>
               <span class="control-label">Mac</span>
               <strong id="daemon-label">Connexion</strong>
@@ -111,7 +81,7 @@
             </button>
           </section>
 
-          <section class="control-card network-card">
+          <section class="control-card network-card compact-card">
             <div class="network-grid">
               <div class="network-tile">
                 <span class="control-label">Mac</span>
@@ -126,7 +96,7 @@
             </div>
           </section>
 
-          <section class="control-card status-card">
+          <section class="control-card status-card compact-card">
             <div>
               <span class="control-label">Install</span>
               <strong id="install-status">--</strong>
@@ -141,7 +111,7 @@
             </div>
           </section>
 
-          <section class="control-card bluetooth-card">
+          <section class="control-card bluetooth-card compact-card">
             <div class="slider-header">
               <div>
                 <span class="control-label">Bluetooth</span>
@@ -159,14 +129,14 @@
             <div id="bluetooth-devices" class="device-list"></div>
           </section>
 
-          <section class="control-card">
-            <span class="card-symbol muted-symbol" aria-hidden="true">⚡</span>
+          <section class="control-card compact-card">
+            <span class="card-symbol muted-symbol control-symbol-power" aria-hidden="true"></span>
             <span class="control-label">Batterie</span>
             <strong id="battery-detail">Batterie inconnue</strong>
             <small id="battery-extra">API batterie non détectée</small>
           </section>
 
-          <section class="control-card telemetry-card">
+          <section class="control-card telemetry-card compact-card">
             <div class="slider-header">
               <span class="control-label">Mac</span>
             </div>
@@ -186,7 +156,7 @@
             </div>
           </section>
 
-          <section class="control-card slider-card">
+          <section class="control-card slider-card compact-card">
             <div class="slider-header">
               <span class="control-label">Luminosité</span>
               <strong id="brightness-value">100%</strong>
@@ -201,7 +171,7 @@
             />
           </section>
 
-          <section class="control-card slider-card">
+          <section class="control-card slider-card compact-card">
             <div class="slider-header">
               <span class="control-label">Volume</span>
               <strong id="volume-value">70%</strong>
@@ -216,7 +186,7 @@
             />
           </section>
 
-          <section class="control-card action-card">
+          <section class="control-card action-card compact-card">
             <button class="wide-button" type="button" data-action="ping">Ping Mac</button>
             <button id="quit-button" class="wide-button quit-button" type="button">Quitter</button>
           </section>
@@ -224,6 +194,6 @@
       </aside>
     </main>
 
-    <script src="./app.js?v=13" type="module"></script>
+    <script src="./app.js?v=14" type="module"></script>
   </body>
 </html>

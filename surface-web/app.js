@@ -130,8 +130,10 @@ function setConnectionState(online) {
   elements.daemonState.classList.toggle("is-offline", !online);
   elements.daemonLabel.textContent = online ? "Connecté" : "Hors ligne";
   elements.controlSummary.textContent = online ? `Mac connecté · ${daemonHostLabel()}` : "Mac hors ligne";
-  elements.homeDaemonPill.textContent = online ? "Connecté" : "Hors ligne";
-  elements.homeDaemonPill.classList.toggle("is-online", online);
+  elements.homeDaemonPill?.classList.toggle("is-online", online);
+  if (elements.homeDaemonPill) {
+    elements.homeDaemonPill.textContent = online ? "Connecté" : "Hors ligne";
+  }
 }
 
 function applyBrightness(value) {
@@ -220,7 +222,9 @@ function updateMachineInfo() {
   }
   elements.ipDetail.textContent = host;
   elements.daemonUrl.textContent = `${isBluetoothTarget ? "Bluetooth/PAN" : "Réseau"} · ${daemonBaseUrl}`;
-  elements.homeMacSubtitle.textContent = `${isBluetoothTarget ? "Bluetooth/PAN" : "Réseau"} · ${host}`;
+  if (elements.homeMacSubtitle) {
+    elements.homeMacSubtitle.textContent = `${isBluetoothTarget ? "Bluetooth/PAN" : "Réseau"} · ${host}`;
+  }
 }
 
 function updateMacMetrics(metrics = null) {
@@ -244,12 +248,18 @@ function updateMacMetrics(metrics = null) {
       : "--°C";
 
   elements.macMetrics.textContent = `CPU ${cpuLabel} · RAM ${memoryLabel} · Temp ${temperatureLabel}`;
-  elements.homeCpu.textContent = cpuLabel;
-  elements.homeMemory.textContent =
-    Number.isFinite(memoryUsedBytes) && Number.isFinite(memoryTotalBytes)
-      ? formatMemoryPair(memoryUsedBytes, memoryTotalBytes)
-      : memoryLabel;
-  elements.homeTemperature.textContent = temperatureLabel;
+  if (elements.homeCpu) {
+    elements.homeCpu.textContent = cpuLabel;
+  }
+  if (elements.homeMemory) {
+    elements.homeMemory.textContent =
+      Number.isFinite(memoryUsedBytes) && Number.isFinite(memoryTotalBytes)
+        ? formatMemoryPair(memoryUsedBytes, memoryTotalBytes)
+        : memoryLabel;
+  }
+  if (elements.homeTemperature) {
+    elements.homeTemperature.textContent = temperatureLabel;
+  }
   elements.cpuDetail.textContent = Number.isFinite(cpuPercent) ? formatPercent(cpuPercent) : "--%";
   elements.memoryDetail.textContent =
     Number.isFinite(memoryUsedBytes) && Number.isFinite(memoryTotalBytes)
@@ -265,7 +275,7 @@ function updateMacMetrics(metrics = null) {
 function updateBatteryDisplay(snapshot) {
   const percent = snapshot.percent;
   const charging = snapshot.charging ? "En charge" : "Sur batterie";
-  elements.batteryStatus.textContent = `${snapshot.charging ? "⚡" : "🔋"} ${percent}%`;
+  elements.batteryStatus.textContent = `${snapshot.charging ? "Charge" : "Batterie"} ${percent}%`;
   elements.batteryDetail.textContent = `${percent}%`;
   elements.batteryExtra.textContent = charging;
 }
@@ -364,7 +374,7 @@ function browserBatterySnapshot(battery) {
 
 async function initBattery() {
   if (!("getBattery" in navigator)) {
-    elements.batteryStatus.textContent = "Batterie --";
+    elements.batteryStatus.textContent = "Batterie --%";
     elements.batteryDetail.textContent = "Batterie inconnue";
     elements.batteryExtra.textContent = "API batterie non disponible";
     return;
@@ -377,7 +387,7 @@ async function initBattery() {
     battery.addEventListener("levelchange", () => updateBatteryDisplay(browserBatterySnapshot(battery)));
     battery.addEventListener("chargingchange", () => updateBatteryDisplay(browserBatterySnapshot(battery)));
   } catch (error) {
-    elements.batteryStatus.textContent = "Batterie --";
+    elements.batteryStatus.textContent = "Batterie --%";
     elements.batteryDetail.textContent = "Batterie inconnue";
     elements.batteryExtra.textContent = error.message;
   }
