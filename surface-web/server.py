@@ -8,6 +8,7 @@ import subprocess
 import time
 import urllib.error
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
@@ -15,8 +16,10 @@ from pathlib import Path
 ROOT_DIR = Path(__file__).resolve().parent
 DAEMON_PORT = int(os.environ.get("GLASSDECK_MAC_DAEMON_PORT", "7878"))
 DAEMON_PROBE_TTL_SECONDS = 5
+DAEMON_LAN_SCAN_TTL_SECONDS = 30
 _daemon_probe_cache = {"timestamp": 0.0, "value": None}
 _bluetooth_scan_cache = {"timestamp": 0.0, "devices": []}
+_lan_scan_cache = {"timestamp": 0.0, "candidates": []}
 
 
 def local_ipv4_addresses():
@@ -57,6 +60,7 @@ def bluetooth_daemon_snapshot():
 
     interfaces = bluetooth_interfaces()
     candidates = daemon_candidates(interfaces)
+    candidates.extend(lan_daemon_candidates())
     recommended = None
 
     for candidate in candidates:
@@ -189,6 +193,8 @@ def prepare_bluetooth():
     _daemon_probe_cache["value"] = None
     for args in (
         ["bluetoothctl", "power", "on"],
+        ["bluetoothctl", "agent", "on"],
+        ["bluetoothctl", "default-agent"],
         ["bluetoothctl", "pairable", "on"],
         ["bluetoothctl", "discoverable", "on"],
     ):
@@ -320,6 +326,49 @@ def daemon_candidates(interfaces):
     return candidates
 
 
+def lan_daemon_candidates():
+    now = time.monotonic()
+    if now - _lan_scan_cache["timestamp"] < DAEMON_LAN_SCAN_TTL_SECONDS:
+        return _lan_scan_cache["candidates"]
+
+    hosts = []
+    for address in local_ipv4_addresses():
+        parts = address.split(".")
+        if len(parts) != 4:
+            continue
+
+        prefix = ".".join(parts[:3])
+        for host_id in range(1, 255):
+            host = f"{prefix}.{host_id}"
+            if host != address:
+                hosts.append(host)
+
+    candidates = []
+    with ThreadPoolExecutor(max_workers=32) as executor:
+        futures = {executor.submit(probe_daemon_host, host): host for host in sorted(set(hosts))}
+        for future in as_completed(futures):
+            candidate = future.result()
+            if candidate:
+                candidates.append(candidate)
+
+    _lan_scan_cache["timestamp"] = now
+    _lan_scan_cache["candidates"] = candidates
+    return candidates
+
+
+def probe_daemon_host(host):
+    url = f"http://{host}:{DAEMON_PORT}"
+    if not daemon_reachable(url, timeout=0.18):
+        return None
+
+    return {
+        "host": host,
+        "interface": "lan",
+        "url": url,
+        "reachable": True,
+    }
+
+
 def common_mac_pan_hosts():
     return ["192.168.2.1", "172.20.10.1"]
 
@@ -354,9 +403,9 @@ def ip_json(args):
         return None
 
 
-def daemon_reachable(base_url):
+def daemon_reachable(base_url, timeout=0.35):
     try:
-        with urllib.request.urlopen(f"{base_url}/status", timeout=0.35) as response:
+        with urllib.request.urlopen(f"{base_url}/status", timeout=timeout) as response:
             return 200 <= response.status < 300
     except (OSError, urllib.error.URLError):
         return False

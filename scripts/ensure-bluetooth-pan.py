@@ -87,6 +87,8 @@ def connect_candidate(address):
 
 def prepare_adapter():
     run(["bluetoothctl", "power", "on"])
+    run(["bluetoothctl", "agent", "on"])
+    run(["bluetoothctl", "default-agent"])
     run(["bluetoothctl", "pairable", "on"])
     run(["bluetoothctl", "discoverable", "on"])
 

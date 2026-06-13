@@ -85,6 +85,9 @@ pairable/discoverable, pairs the Mac, marks it trusted, and connects it.
 After that first validation, GlassDeck retries the PAN connection automatically
 at startup.
 
+If Bluetooth PAN is slow or unavailable, the Surface bridge also discovers a
+reachable GlassDeck Mac daemon on the local network automatically.
+
 ### 5. Enable Bluetooth PAN on the Mac
 
 On macOS:
@@ -105,7 +108,8 @@ ip addr show
 
 Look for an interface such as `bnep0`. GlassDeck uses this interface to find
 the Mac daemon without Wi-Fi. The launcher will try to reconnect paired devices
-automatically before starting the kiosk.
+automatically before starting the kiosk. If the Mac is on the same LAN, the
+Surface bridge can also find `:7878` directly.
 
 ### 6. Start GlassDeck
 

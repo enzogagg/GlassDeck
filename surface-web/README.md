@@ -14,6 +14,9 @@ tries to reconnect Bluetooth PAN automatically at startup.
 The first validation happens from the Surface control center: scan Bluetooth,
 select the Mac, then GlassDeck pairs, trusts, and connects it.
 
+Daemon discovery is automatic after that: Bluetooth PAN is preferred, and the
+Surface bridge also checks the local network for a reachable Mac daemon.
+
 ## Run Locally
 
 From the repository root:
@@ -63,7 +66,7 @@ chromium --kiosk http://127.0.0.1:8090
 ```
 
 When no working URL is stored, the Surface bridge discovers the Mac daemon over
-Bluetooth PAN automatically.
+Bluetooth PAN or the local network automatically.
 
 ## Control Center
 
