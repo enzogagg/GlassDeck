@@ -5,6 +5,8 @@ ROOT_DIR="$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)"
 LABEL="ovh.ega.glassdeck.mac-daemon"
 PLIST_DIR="$HOME/Library/LaunchAgents"
 PLIST_FILE="$PLIST_DIR/$LABEL.plist"
+APP_SUPPORT_DIR="$HOME/Library/Application Support/GlassDeck"
+DAEMON_BIN="$APP_SUPPORT_DIR/glassdeck-mac-daemon"
 LOG_DIR="$HOME/Library/Logs/GlassDeck"
 
 if ! command -v swift >/dev/null 2>&1; then
@@ -12,7 +14,14 @@ if ! command -v swift >/dev/null 2>&1; then
   exit 1
 fi
 
-mkdir -p "$PLIST_DIR" "$LOG_DIR"
+mkdir -p "$PLIST_DIR" "$APP_SUPPORT_DIR" "$LOG_DIR"
+
+echo "Building Mac daemon release binary..."
+swift build -c release --package-path "$ROOT_DIR/mac-daemon"
+
+echo "Installing daemon binary into Application Support..."
+cp "$ROOT_DIR/mac-daemon/.build/release/glassdeck-mac-daemon" "$DAEMON_BIN"
+chmod 755 "$DAEMON_BIN"
 
 cat > "$PLIST_FILE" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
@@ -23,10 +32,10 @@ cat > "$PLIST_FILE" <<EOF
   <string>$LABEL</string>
   <key>ProgramArguments</key>
   <array>
-    <string>$ROOT_DIR/scripts/run-mac-daemon.sh</string>
+    <string>$DAEMON_BIN</string>
   </array>
   <key>WorkingDirectory</key>
-  <string>$ROOT_DIR</string>
+  <string>$APP_SUPPORT_DIR</string>
   <key>EnvironmentVariables</key>
   <dict>
     <key>GLASSDECK_MAC_DAEMON_ADDR</key>
