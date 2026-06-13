@@ -50,31 +50,16 @@ Check Swift:
 swift --version
 ```
 
-### 3. Install Surface requirements on Ubuntu
+### 3. Install the Surface deck
 
-Install Chromium, Python, and BlueZ:
-
-```sh
-sudo apt update
-sudo apt install -y python3 chromium-browser bluez
-```
-
-Some Ubuntu installs provide Chromium as `chromium` instead of
-`chromium-browser`. If the kiosk launch script cannot find Chromium, install the
-available package for your distribution and adjust `scripts/restart-surface.sh`
-if needed.
-
-Enable the Bluetooth service:
+On Ubuntu, run the Surface bootstrap from the cloned repository:
 
 ```sh
-sudo systemctl enable --now bluetooth
+./scripts/install-surface.sh
 ```
 
-Check that the Bluetooth CLI is available:
-
-```sh
-bluetoothctl --version
-```
+This installs the Surface packages, enables Bluetooth, installs the user
+systemd service, and starts the kiosk.
 
 ### 4. Pair once from the Surface deck
 
@@ -131,11 +116,10 @@ Open the Surface UI:
 http://127.0.0.1:8090
 ```
 
-For kiosk boot on the Surface:
+For kiosk boot on the Surface, use the full installer:
 
 ```sh
-./scripts/install-ui.sh
-systemctl --user start glassdeck-ui.service
+./scripts/install-surface.sh
 ```
 
 When Bluetooth PAN is connected, GlassDeck automatically probes the Mac daemon

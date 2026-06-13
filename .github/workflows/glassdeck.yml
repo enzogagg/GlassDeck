@@ -81,6 +81,9 @@ jobs:
           sh -n scripts/run-mac-daemon.sh
           sh -n scripts/run-surface.sh
           sh -n scripts/run-surface-web.sh
+          sh -n scripts/restart-surface.sh
+          bash -n scripts/install-surface.sh
+          bash -n scripts/install-ui.sh
 
   swift:
     name: Swift packages
@@ -131,7 +134,13 @@ jobs:
         run: |
           mkdir -p dist/surface-web
           cp -R surface-web/. dist/surface-web/
-          cp scripts/run-surface-web.sh dist/surface-web/
+          mkdir -p dist/surface-web/scripts
+          cp scripts/install-surface.sh dist/surface-web/scripts/
+          cp scripts/install-ui.sh dist/surface-web/scripts/
+          cp scripts/restart-surface.sh dist/surface-web/scripts/
+          cp scripts/run-surface.sh dist/surface-web/scripts/
+          cp scripts/run-surface-web.sh dist/surface-web/scripts/
+          cp scripts/ensure-bluetooth-pan.py dist/surface-web/scripts/
 
       - name: Upload Mac daemon artifact
         uses: actions/upload-artifact@v4

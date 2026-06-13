@@ -42,16 +42,14 @@ status, hardware controls, battery data, or Bluetooth PAN daemon discovery.
 
 ## Surface Requirements
 
-On Ubuntu:
+On Ubuntu, from the repository root:
 
 ```sh
-sudo apt update
-sudo apt install -y python3 chromium-browser bluez
-sudo systemctl enable --now bluetooth
+./scripts/install-surface.sh
 ```
 
-If Chromium is packaged as `chromium` on your distribution, install that package
-instead and adjust the kiosk launch command if needed.
+The installer pulls the required packages, enables Bluetooth, installs the user
+service, and starts the kiosk.
 
 The Surface bridge uses `bluetoothctl` internally to make the deck pairable,
 scan devices, trust the Mac, and reconnect it later.
