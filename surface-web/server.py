@@ -16,6 +16,7 @@ ROOT_DIR = Path(__file__).resolve().parent
 DAEMON_PORT = int(os.environ.get("GLASSDECK_MAC_DAEMON_PORT", "7878"))
 DAEMON_PROBE_TTL_SECONDS = 5
 _daemon_probe_cache = {"timestamp": 0.0, "value": None}
+_bluetooth_scan_cache = {"timestamp": 0.0, "devices": []}
 
 
 def local_ipv4_addresses():
@@ -69,11 +70,206 @@ def bluetooth_daemon_snapshot():
     snapshot = {
         "interfaces": interfaces,
         "candidates": candidates,
+        "devices": bluetooth_devices(),
+        "ready": bluetooth_ready(),
         "recommended_url": recommended,
     }
     _daemon_probe_cache["timestamp"] = now
     _daemon_probe_cache["value"] = snapshot
     return snapshot
+
+
+def bluetooth_ready():
+    return shutil.which("bluetoothctl") is not None
+
+
+def bluetooth_devices():
+    if not bluetooth_ready():
+        return []
+
+    devices = {}
+    for kind in ("", "Paired", "Trusted", "Connected"):
+        args = ["bluetoothctl", "devices"]
+        if kind:
+            args.append(kind)
+
+        for line in command_lines(args, timeout=2):
+            parts = line.strip().split(maxsplit=2)
+            if len(parts) < 3 or parts[0] != "Device":
+                continue
+
+            address = parts[1]
+            device = devices.setdefault(
+                address,
+                {
+                    "address": address,
+                    "name": parts[2],
+                    "paired": False,
+                    "trusted": False,
+                    "connected": False,
+                },
+            )
+            if kind == "Paired":
+                device["paired"] = True
+            elif kind == "Trusted":
+                device["trusted"] = True
+            elif kind == "Connected":
+                device["connected"] = True
+
+    for device in devices.values():
+        details = bluetooth_device_info(device["address"])
+        device.update(details)
+
+    return sorted(
+        devices.values(),
+        key=lambda item: (
+            not item.get("connected", False),
+            not item.get("trusted", False),
+            not is_likely_mac_device(item),
+            item.get("name", "").lower(),
+        ),
+    )
+
+
+def bluetooth_device_info(address):
+    info = {
+        "name": "",
+        "paired": False,
+        "trusted": False,
+        "connected": False,
+        "mac_candidate": False,
+    }
+
+    for line in command_lines(["bluetoothctl", "info", address], timeout=2):
+        stripped = line.strip()
+        lower = stripped.lower()
+        if lower.startswith("name:"):
+            info["name"] = stripped.split(":", 1)[1].strip()
+        elif lower.startswith("paired:"):
+            info["paired"] = "yes" in lower
+        elif lower.startswith("trusted:"):
+            info["trusted"] = "yes" in lower
+        elif lower.startswith("connected:"):
+            info["connected"] = "yes" in lower
+        elif "personal area network" in lower or "network access point" in lower:
+            info["mac_candidate"] = True
+
+    if info["name"]:
+        info["mac_candidate"] = info["mac_candidate"] or is_likely_mac_name(info["name"])
+
+    return info
+
+
+def is_likely_mac_device(device):
+    return device.get("mac_candidate") or is_likely_mac_name(device.get("name", ""))
+
+
+def is_likely_mac_name(name):
+    lower = name.lower()
+    return any(hint in lower for hint in ("mac", "macbook", "imac", "apple", "glassdeck"))
+
+
+def command_lines(args, timeout=3):
+    try:
+        output = subprocess.check_output(
+            args,
+            stderr=subprocess.DEVNULL,
+            text=True,
+            timeout=timeout,
+        )
+        return output.splitlines()
+    except (OSError, subprocess.SubprocessError):
+        return []
+
+
+def prepare_bluetooth():
+    if not bluetooth_ready():
+        return {"ok": False, "error": "bluetoothctl indisponible"}
+
+    _daemon_probe_cache["value"] = None
+    for args in (
+        ["bluetoothctl", "power", "on"],
+        ["bluetoothctl", "pairable", "on"],
+        ["bluetoothctl", "discoverable", "on"],
+    ):
+        try:
+            subprocess.run(args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=3, check=False)
+        except (OSError, subprocess.SubprocessError):
+            pass
+
+    return {"ok": True, "bluetooth": bluetooth_daemon_snapshot()}
+
+
+def scan_bluetooth():
+    if not bluetooth_ready():
+        return {"ok": False, "error": "bluetoothctl indisponible"}
+
+    _daemon_probe_cache["value"] = None
+    now = time.monotonic()
+    if now - _bluetooth_scan_cache["timestamp"] < 12:
+        return {"ok": True, "devices": _bluetooth_scan_cache["devices"]}
+
+    try:
+        subprocess.run(["bluetoothctl", "power", "on"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=3, check=False)
+    except (OSError, subprocess.SubprocessError):
+        pass
+
+    try:
+        subprocess.run(
+            ["bluetoothctl", "scan", "on"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            timeout=6,
+            check=False,
+        )
+    except subprocess.TimeoutExpired:
+        pass
+    finally:
+        try:
+            subprocess.run(["bluetoothctl", "scan", "off"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=3, check=False)
+        except (OSError, subprocess.SubprocessError):
+            pass
+
+    devices = bluetooth_devices()
+    _bluetooth_scan_cache["timestamp"] = time.monotonic()
+    _bluetooth_scan_cache["devices"] = devices
+    return {"ok": True, "devices": devices}
+
+
+def connect_bluetooth_device(address):
+    if not bluetooth_ready():
+        return {"ok": False, "error": "bluetoothctl indisponible"}
+
+    if not isinstance(address, str) or not address:
+        return {"ok": False, "error": "Adresse Bluetooth manquante"}
+
+    prepare_bluetooth()
+    commands = [
+        ["bluetoothctl", "pair", address],
+        ["bluetoothctl", "trust", address],
+        ["bluetoothctl", "connect", address],
+    ]
+
+    errors = []
+    for command in commands:
+        try:
+            subprocess.check_output(command, stderr=subprocess.STDOUT, text=True, timeout=25)
+        except (OSError, subprocess.SubprocessError) as error:
+            output = getattr(error, "output", None)
+            if output:
+                errors.append(output.strip())
+
+    _daemon_probe_cache["value"] = None
+    snapshot = bluetooth_daemon_snapshot()
+    device = next((item for item in snapshot["devices"] if item["address"] == address), None)
+    connected = bool(device and device.get("connected"))
+
+    return {
+        "ok": connected,
+        "bluetooth": snapshot,
+        "device": device,
+        "error": None if connected else "; ".join(errors[-2:]) or "Connexion Bluetooth non établie",
+    }
 
 
 def bluetooth_interfaces():
@@ -319,7 +515,8 @@ class GlassDeckHandler(SimpleHTTPRequestHandler):
         super().do_GET()
 
     def do_POST(self):
-        if self.path.split("?", 1)[0] != "/surface-control":
+        path = self.path.split("?", 1)[0]
+        if path not in {"/surface-control", "/bluetooth-control"}:
             self.send_error(404)
             return
 
@@ -328,6 +525,24 @@ class GlassDeckHandler(SimpleHTTPRequestHandler):
             payload = json.loads(self.rfile.read(length) or b"{}")
         except json.JSONDecodeError:
             self.send_error(400, "JSON invalide")
+            return
+
+        if path == "/bluetooth-control":
+            action = payload.get("action")
+
+            if action == "prepare":
+                self.write_json(prepare_bluetooth())
+                return
+
+            if action == "scan":
+                self.write_json(scan_bluetooth())
+                return
+
+            if action == "connect":
+                self.write_json(connect_bluetooth_device(payload.get("address")))
+                return
+
+            self.send_error(400, "Action Bluetooth inconnue")
             return
 
         control = payload.get("control")

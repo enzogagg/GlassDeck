@@ -76,46 +76,14 @@ Check that the Bluetooth CLI is available:
 bluetoothctl --version
 ```
 
-### 4. Make the Surface discoverable
+### 4. Pair once from the Surface deck
 
-On the Surface:
+Start the Surface UI, open the control center, use the Bluetooth scan button,
+then select the Mac once. GlassDeck powers on Bluetooth, makes the Surface
+pairable/discoverable, pairs the Mac, marks it trusted, and connects it.
 
-```sh
-bluetoothctl
-```
-
-Inside `bluetoothctl`:
-
-```text
-power on
-agent on
-default-agent
-pairable on
-discoverable on
-show
-```
-
-Keep this terminal open while pairing. If the Mac still does not show the
-Surface, pair from the Surface instead:
-
-```text
-scan on
-pair <mac-bluetooth-address>
-trust <mac-bluetooth-address>
-connect <mac-bluetooth-address>
-```
-
-Accept the pairing prompt on the Mac.
-
-After pairing, keep the Mac trusted and connected from the Surface:
-
-```text
-trust <mac-bluetooth-address>
-connect <mac-bluetooth-address>
-```
-
-Once the device has been paired and trusted once, GlassDeck will retry the PAN
-connection automatically at startup.
+After that first validation, GlassDeck retries the PAN connection automatically
+at startup.
 
 ### 5. Enable Bluetooth PAN on the Mac
 

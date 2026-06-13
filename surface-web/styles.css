@@ -306,6 +306,58 @@ button {
   min-height: 118px;
 }
 
+.bluetooth-card {
+  grid-column: span 2;
+  min-height: 118px;
+}
+
+.device-list {
+  display: grid;
+  gap: 8px;
+}
+
+.device-list small {
+  margin-top: 0;
+}
+
+.device-button {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.09);
+  color: inherit;
+  cursor: pointer;
+}
+
+.device-button:disabled {
+  cursor: default;
+  opacity: 0.72;
+}
+
+.device-button span,
+.device-button small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.device-button span {
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-align: left;
+}
+
+.device-button small {
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
 .telemetry-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

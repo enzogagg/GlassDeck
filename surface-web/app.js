@@ -11,6 +11,7 @@ const fallbackActions = [
 const state = {
   actions: fallbackActions,
   battery: null,
+  bluetooth: null,
   controlTimers: new Map(),
   online: false,
   autoDaemonUrl: !storedDaemonBaseUrl,
@@ -23,6 +24,9 @@ const elements = {
   batteryDetail: document.querySelector("#battery-detail"),
   batteryExtra: document.querySelector("#battery-extra"),
   batteryStatus: document.querySelector("#battery-status"),
+  bluetoothDevices: document.querySelector("#bluetooth-devices"),
+  bluetoothLabel: document.querySelector("#bluetooth-label"),
+  bluetoothScanButton: document.querySelector("#bluetooth-scan-button"),
   brightnessSlider: document.querySelector("#brightness-slider"),
   brightnessValue: document.querySelector("#brightness-value"),
   clock: document.querySelector("#clock"),
@@ -247,6 +251,64 @@ function updateSurfaceIp(addresses = []) {
   elements.surfaceIp.textContent = addresses[0] || "IP indisponible";
 }
 
+function deviceStatusLabel(device) {
+  if (device.connected) {
+    return "Connecté";
+  }
+  if (device.trusted) {
+    return "Validé";
+  }
+  if (device.paired) {
+    return "Appairé";
+  }
+  return "Nouveau";
+}
+
+function updateBluetoothDisplay(bluetooth = {}) {
+  state.bluetooth = bluetooth;
+  const devices = bluetooth.devices || [];
+  const connected = devices.find((device) => device.connected);
+  const preferred = connected || devices.find((device) => device.mac_candidate) || devices[0];
+
+  if (!bluetooth.ready) {
+    elements.bluetoothLabel.textContent = "Indisponible";
+    elements.bluetoothDevices.innerHTML = "";
+    return;
+  }
+
+  elements.bluetoothLabel.textContent = connected
+    ? connected.name || connected.address
+    : preferred
+      ? "Mac détecté"
+      : "Prêt";
+
+  elements.bluetoothDevices.innerHTML = "";
+
+  const preferredDevices = devices.filter((device) => device.mac_candidate || device.paired || device.trusted || device.connected);
+  const visibleDevices = (preferredDevices.length > 0 ? preferredDevices : devices).slice(0, 4);
+  if (visibleDevices.length === 0) {
+    const empty = document.createElement("small");
+    empty.textContent = "Aucun Mac détecté";
+    elements.bluetoothDevices.append(empty);
+    return;
+  }
+
+  for (const device of visibleDevices) {
+    const button = document.createElement("button");
+    const name = document.createElement("span");
+    const status = document.createElement("small");
+
+    button.className = "device-button";
+    button.type = "button";
+    button.dataset.bluetoothAddress = device.address;
+    button.disabled = device.connected;
+    name.textContent = device.name || device.address;
+    status.textContent = deviceStatusLabel(device);
+    button.append(name, status);
+    elements.bluetoothDevices.append(button);
+  }
+}
+
 function syncBluetoothDaemon(bluetooth = {}) {
   if (!bluetooth.recommended_url) {
     return false;
@@ -305,6 +367,7 @@ async function refreshSurfaceStatus() {
     const status = await response.json();
     updateSurfaceIp(status.addresses || []);
     updateControls(status.controls || {});
+    updateBluetoothDisplay(status.bluetooth || {});
     syncBrightnessSnapshot(status.controls?.brightness);
     const daemonChanged = syncBluetoothDaemon(status.bluetooth);
     if (daemonChanged) {
@@ -317,10 +380,48 @@ async function refreshSurfaceStatus() {
     }
   } catch {
     updateSurfaceIp([]);
+    updateBluetoothDisplay({});
   }
 
   if (state.battery) {
     updateBatteryDisplay(browserBatterySnapshot(state.battery));
+  }
+}
+
+async function sendBluetoothControl(action, payload = {}) {
+  elements.bluetoothScanButton.disabled = true;
+  try {
+    const response = await fetch("/bluetooth-control", {
+      body: JSON.stringify({ action, ...payload }),
+      cache: "no-store",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      method: "POST",
+    });
+
+    const result = await response.json();
+    if (!response.ok || !result.ok) {
+      throw new Error(result.error || `HTTP ${response.status}`);
+    }
+
+    if (result.bluetooth) {
+      updateBluetoothDisplay(result.bluetooth);
+      const daemonChanged = syncBluetoothDaemon(result.bluetooth);
+      if (daemonChanged) {
+        refreshStatus();
+      }
+    } else if (result.devices) {
+      updateBluetoothDisplay({ ready: true, devices: result.devices });
+    }
+
+    return result;
+  } catch (error) {
+    elements.bluetoothLabel.textContent = "Erreur";
+    console.error("GlassDeck Bluetooth", error);
+    return null;
+  } finally {
+    elements.bluetoothScanButton.disabled = false;
   }
 }
 
@@ -382,6 +483,10 @@ elements.controlCenterButton.addEventListener("click", () => {
 
 elements.refreshButton.addEventListener("click", refreshStatus);
 
+elements.bluetoothScanButton.addEventListener("click", () => {
+  sendBluetoothControl("scan");
+});
+
 elements.brightnessSlider.addEventListener("input", (event) => {
   const value = Number(event.target.value);
   applyBrightness(value);
@@ -406,6 +511,15 @@ document.querySelectorAll("[data-action]").forEach((button) => {
   button.addEventListener("click", () => executeAction(button.dataset.action));
 });
 
+elements.bluetoothDevices.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-bluetooth-address]");
+  if (!button) {
+    return;
+  }
+
+  sendBluetoothControl("connect", { address: button.dataset.bluetoothAddress });
+});
+
 document.addEventListener("click", (event) => {
   if (
     !elements.controlCenter.contains(event.target) &&
@@ -421,6 +535,7 @@ applyBrightness(state.brightness);
 applyVolume(state.volume);
 updateMacMetrics(null);
 initBattery();
+sendBluetoothControl("prepare");
 refreshSurfaceStatus();
 refreshStatus();
 setInterval(updateClock, 1000);

@@ -85,6 +85,12 @@ def connect_candidate(address):
     run(["bluetoothctl", "connect", address])
 
 
+def prepare_adapter():
+    run(["bluetoothctl", "power", "on"])
+    run(["bluetoothctl", "pairable", "on"])
+    run(["bluetoothctl", "discoverable", "on"])
+
+
 def bnep_interfaces_present():
     try:
         output = run(["ip", "-o", "link", "show"])
@@ -98,6 +104,7 @@ def ensure_pan_connection():
     if not bluetoothctl_available():
         return 0
 
+    prepare_adapter()
     devices = paired_devices()
     if not devices:
         return 0
