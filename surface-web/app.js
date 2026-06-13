@@ -18,6 +18,7 @@ const state = {
   autoDaemonUrl: !storedDaemonBaseUrl,
   brightness: Number(localStorage.getItem("glassdeck-brightness") || "100"),
   volume: Number(localStorage.getItem("glassdeck-volume") || "70"),
+  dashboard: null,
   metrics: null,
 };
 
@@ -36,6 +37,7 @@ const elements = {
   controlCenter: document.querySelector("#control-center"),
   controlCenterButton: document.querySelector("#control-center-button"),
   controlSummary: document.querySelector("#control-summary"),
+  dashboardGrid: document.querySelector("#dashboard-grid"),
   daemonLabel: document.querySelector("#daemon-label"),
   daemonState: document.querySelector("#daemon-state"),
   daemonUrl: document.querySelector("#daemon-url"),
@@ -116,6 +118,81 @@ function formatTemperature(value) {
 
 function readMetric(metrics, camelKey, snakeKey) {
   return metrics?.[camelKey] ?? metrics?.[snakeKey] ?? null;
+}
+
+function readDashboardValue(entity) {
+  if (entity === "mac.daemon") {
+    return state.online ? "Connecté" : "Hors ligne";
+  }
+  if (entity === "mac.cpu_percent") {
+    const value = readMetric(state.metrics, "cpuPercent", "cpu_percent");
+    return Number.isFinite(value) ? formatPercent(value) : "--%";
+  }
+  if (entity === "mac.memory_percent") {
+    const value = readMetric(state.metrics, "memoryPercent", "memory_percent");
+    return Number.isFinite(value) ? formatPercent(value) : "--%";
+  }
+  if (entity === "mac.temperature_celsius") {
+    const value = readMetric(state.metrics, "temperatureCelsius", "temperature_celsius");
+    return Number.isFinite(value) && value > 0 ? formatTemperature(value) : "--°";
+  }
+  return "--";
+}
+
+function normalizeGridValue(card, key, fallback) {
+  const value = Number(card?.[key]);
+  return Number.isFinite(value) ? Math.max(0, Math.round(value)) : fallback;
+}
+
+function renderDashboard(dashboard = state.dashboard) {
+  if (!elements.dashboardGrid || !dashboard) {
+    return;
+  }
+
+  state.dashboard = dashboard;
+  const grid = dashboard.grid || {};
+  const columns = Number(grid.columns) || 12;
+  const rowHeight = Number(grid.rowHeight ?? grid.row_height) || 64;
+  const gap = Number(grid.gap) || 12;
+
+  elements.dashboardGrid.style.setProperty("--dashboard-columns", String(columns));
+  elements.dashboardGrid.style.setProperty("--dashboard-row-height", `${rowHeight}px`);
+  elements.dashboardGrid.style.setProperty("--dashboard-gap", `${gap}px`);
+  elements.dashboardGrid.innerHTML = "";
+
+  for (const card of dashboard.cards || []) {
+    const item = document.createElement(card.type === "button" ? "button" : "article");
+    const eyebrow = document.createElement("span");
+    const title = document.createElement("strong");
+    const value = document.createElement("b");
+    const subtitle = document.createElement("small");
+
+    item.className = `dashboard-card dashboard-card-${card.type || "metric"}`;
+    const x = normalizeGridValue(card, "x", 0);
+    const y = normalizeGridValue(card, "y", 0);
+    const width = Math.max(1, normalizeGridValue(card, "w", 3));
+    const height = Math.max(1, normalizeGridValue(card, "h", 2));
+
+    item.style.gridColumn = `${x + 1} / span ${width}`;
+    item.style.gridRow = `${y + 1} / span ${height}`;
+
+    if (card.type === "button") {
+      item.type = "button";
+      item.dataset.dashboardAction = card.action || "";
+      value.textContent = "Action";
+    } else {
+      value.textContent = readDashboardValue(card.entity);
+    }
+
+    eyebrow.className = "dashboard-card-eyebrow";
+    eyebrow.textContent = card.type === "button" ? "Commande" : "Entité";
+    title.textContent = card.title || "Carte";
+    value.className = "dashboard-card-value";
+    subtitle.textContent = card.subtitle || card.entity || card.action || "";
+
+    item.append(eyebrow, title, value, subtitle);
+    elements.dashboardGrid.append(item);
+  }
 }
 
 function setControlCenterOpen(open) {
@@ -270,6 +347,7 @@ function updateMacMetrics(metrics = null) {
   elements.temperatureDetail.textContent = Number.isFinite(temperature)
     ? formatTemperature(temperature)
     : temperatureDetail;
+  renderDashboard();
 }
 
 function updateBatteryDisplay(snapshot) {
@@ -430,6 +508,26 @@ async function refreshSurfaceStatus() {
   }
 }
 
+async function refreshDashboard() {
+  try {
+    const response = await fetch("/dashboard", {
+      cache: "no-store",
+      method: "GET",
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    const result = await response.json();
+    if (result.dashboard) {
+      renderDashboard(result.dashboard);
+    }
+  } catch (error) {
+    console.error("GlassDeck dashboard", error);
+  }
+}
+
 async function sendBluetoothControl(action, payload = {}) {
   elements.bluetoothScanButton.disabled = true;
   try {
@@ -482,6 +580,7 @@ async function refreshStatus() {
     state.actions = status.available_actions || fallbackActions;
     updateMacMetrics(status.metrics || null);
     setConnectionState(true);
+    renderDashboard();
   } catch {
     await refreshStatusThroughBridge();
   }
@@ -508,10 +607,12 @@ async function refreshStatusThroughBridge() {
     state.actions = result.status.available_actions || fallbackActions;
     updateMacMetrics(result.status.metrics || null);
     setConnectionState(true);
+    renderDashboard();
   } catch {
     state.actions = fallbackActions;
     updateMacMetrics(null);
     setConnectionState(false);
+    renderDashboard();
   }
 }
 
@@ -600,6 +701,14 @@ elements.bluetoothDevices.addEventListener("click", (event) => {
   sendBluetoothControl("connect", { address: button.dataset.bluetoothAddress });
 });
 
+elements.dashboardGrid?.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-dashboard-action]");
+  const actionId = button?.dataset.dashboardAction;
+  if (actionId) {
+    executeAction(actionId);
+  }
+});
+
 document.addEventListener("click", (event) => {
   if (
     !elements.controlCenter.contains(event.target) &&
@@ -618,6 +727,8 @@ initBattery();
 sendBluetoothControl("prepare");
 refreshSurfaceStatus();
 refreshStatus();
+refreshDashboard();
 setInterval(updateClock, 1000);
 setInterval(refreshSurfaceStatus, 1000);
 setInterval(refreshStatus, 1000);
+setInterval(refreshDashboard, 5000);

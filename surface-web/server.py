@@ -446,9 +446,9 @@ def daemon_reachable(base_url, timeout=0.35):
         return False
 
 
-def daemon_json(base_url, timeout=1.2):
+def daemon_json(base_url, timeout=1.2, path="/status"):
     try:
-        with urllib.request.urlopen(f"{base_url}/status", timeout=timeout) as response:
+        with urllib.request.urlopen(f"{base_url}{path}", timeout=timeout) as response:
             if not 200 <= response.status < 300:
                 return None
 
@@ -476,6 +476,94 @@ def mac_status_snapshot():
         "ok": False,
         "url": bluetooth.get("recommended_url"),
         "status": None,
+        "bluetooth": bluetooth,
+    }
+
+
+def default_dashboard():
+    return {
+        "id": "main",
+        "name": "Principal",
+        "grid": {"columns": 12, "row_height": 64, "gap": 12},
+        "cards": [
+            {
+                "id": "mac-status",
+                "type": "status",
+                "title": "Mac",
+                "subtitle": "Daemon GlassDeck",
+                "entity": "mac.daemon",
+                "x": 0,
+                "y": 0,
+                "w": 3,
+                "h": 2,
+            },
+            {
+                "id": "mac-cpu",
+                "type": "metric",
+                "title": "CPU",
+                "subtitle": "Utilisation",
+                "entity": "mac.cpu_percent",
+                "x": 3,
+                "y": 0,
+                "w": 3,
+                "h": 2,
+            },
+            {
+                "id": "mac-memory",
+                "type": "metric",
+                "title": "Mémoire",
+                "subtitle": "RAM utilisée",
+                "entity": "mac.memory_percent",
+                "x": 6,
+                "y": 0,
+                "w": 3,
+                "h": 2,
+            },
+            {
+                "id": "mac-temperature",
+                "type": "metric",
+                "title": "Température",
+                "subtitle": "Capteur Mac",
+                "entity": "mac.temperature_celsius",
+                "x": 9,
+                "y": 0,
+                "w": 3,
+                "h": 2,
+            },
+            {
+                "id": "open-apps",
+                "type": "button",
+                "title": "Applications",
+                "subtitle": "Ouvrir sur le Mac",
+                "action": "open-applications",
+                "x": 0,
+                "y": 2,
+                "w": 3,
+                "h": 2,
+            },
+        ],
+    }
+
+
+def dashboard_snapshot():
+    bluetooth = bluetooth_daemon_snapshot()
+    for candidate in bluetooth.get("candidates", []):
+        if not candidate.get("reachable"):
+            continue
+
+        dashboard = daemon_json(candidate["url"], path="/dashboards/main")
+        if dashboard is not None:
+            return {
+                "ok": True,
+                "url": candidate["url"],
+                "dashboard": dashboard,
+                "bluetooth": bluetooth,
+            }
+
+    return {
+        "ok": False,
+        "url": bluetooth.get("recommended_url"),
+        "dashboard": default_dashboard(),
         "bluetooth": bluetooth,
     }
 
@@ -633,6 +721,10 @@ class GlassDeckHandler(SimpleHTTPRequestHandler):
 
         if self.path.split("?", 1)[0] == "/mac-status":
             self.write_json(mac_status_snapshot())
+            return
+
+        if self.path.split("?", 1)[0] == "/dashboard":
+            self.write_json(dashboard_snapshot())
             return
 
         super().do_GET()

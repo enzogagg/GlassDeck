@@ -27,6 +27,7 @@ final class MacDaemon: @unchecked Sendable {
     private let queue = DispatchQueue(label: "glassdeck.mac-daemon")
     private let telemetry = MacTelemetrySampler()
     private let registry = ActionRegistry()
+    private let dashboards = DashboardStore()
     private var listener: NWListener?
     private var connectedClients = 0
 
@@ -111,6 +112,18 @@ final class MacDaemon: @unchecked Sendable {
             respond(connection: connection, response: .empty(status: 204))
         case ("GET", "/status"):
             respond(connection: connection, response: .json(status: 200, value: statusSnapshot()))
+        case ("GET", "/dashboard"), ("GET", "/dashboards/main"):
+            respond(connection: connection, response: .json(status: 200, value: dashboards.mainDashboard()))
+        case ("POST", "/dashboards/main"), ("PUT", "/dashboards/main"):
+            do {
+                let decoder = JSONDecoder()
+                decoder.keyDecodingStrategy = .convertFromSnakeCase
+                let dashboard = try decoder.decode(DashboardDefinition.self, from: request.body)
+                dashboards.saveMainDashboard(dashboard)
+                respond(connection: connection, response: .json(status: 200, value: dashboard))
+            } catch {
+                respond(connection: connection, response: .text(status: 400, body: "Dashboard invalide: \(error)"))
+            }
         case ("POST", "/command"):
             do {
                 let command = try JSONDecoder().decode(CommandRequest.self, from: request.body)
@@ -234,7 +247,7 @@ struct HTTPResponse {
             Content-Type: \(contentType)\r
             Content-Length: \(body.count)\r
             Access-Control-Allow-Origin: *\r
-            Access-Control-Allow-Methods: GET, POST, OPTIONS\r
+            Access-Control-Allow-Methods: GET, POST, PUT, OPTIONS\r
             Access-Control-Allow-Headers: Content-Type\r
             Connection: close\r
             \r
@@ -372,6 +385,122 @@ enum ActionHandler {
 struct ActionContext {
     let actionCount: Int
     let connectedClients: Int
+}
+
+final class DashboardStore: @unchecked Sendable {
+    private var dashboard: DashboardDefinition
+
+    init() {
+        dashboard = DashboardDefinition.defaultMain
+    }
+
+    func mainDashboard() -> DashboardDefinition {
+        dashboard
+    }
+
+    func saveMainDashboard(_ dashboard: DashboardDefinition) {
+        self.dashboard = dashboard
+    }
+}
+
+struct DashboardDefinition: Codable {
+    let id: String
+    let name: String
+    let grid: DashboardGrid
+    let cards: [DashboardCard]
+
+    static let defaultMain = DashboardDefinition(
+        id: "main",
+        name: "Principal",
+        grid: DashboardGrid(columns: 12, rowHeight: 64, gap: 12),
+        cards: [
+            DashboardCard(
+                id: "mac-status",
+                type: .status,
+                title: "Mac",
+                subtitle: "Daemon GlassDeck",
+                entity: "mac.daemon",
+                action: nil,
+                x: 0,
+                y: 0,
+                w: 3,
+                h: 2
+            ),
+            DashboardCard(
+                id: "mac-cpu",
+                type: .metric,
+                title: "CPU",
+                subtitle: "Utilisation",
+                entity: "mac.cpu_percent",
+                action: nil,
+                x: 3,
+                y: 0,
+                w: 3,
+                h: 2
+            ),
+            DashboardCard(
+                id: "mac-memory",
+                type: .metric,
+                title: "Mémoire",
+                subtitle: "RAM utilisée",
+                entity: "mac.memory_percent",
+                action: nil,
+                x: 6,
+                y: 0,
+                w: 3,
+                h: 2
+            ),
+            DashboardCard(
+                id: "mac-temperature",
+                type: .metric,
+                title: "Température",
+                subtitle: "Capteur Mac",
+                entity: "mac.temperature_celsius",
+                action: nil,
+                x: 9,
+                y: 0,
+                w: 3,
+                h: 2
+            ),
+            DashboardCard(
+                id: "open-apps",
+                type: .button,
+                title: "Applications",
+                subtitle: "Ouvrir sur le Mac",
+                entity: nil,
+                action: "open-applications",
+                x: 0,
+                y: 2,
+                w: 3,
+                h: 2
+            ),
+        ]
+    )
+}
+
+struct DashboardGrid: Codable {
+    let columns: Int
+    let rowHeight: Int
+    let gap: Int
+}
+
+struct DashboardCard: Codable {
+    let id: String
+    let type: DashboardCardType
+    let title: String
+    let subtitle: String?
+    let entity: String?
+    let action: String?
+    let x: Int
+    let y: Int
+    let w: Int
+    let h: Int
+}
+
+enum DashboardCardType: String, Codable {
+    case metric
+    case button
+    case status
 }
 
 struct ActionOutput {

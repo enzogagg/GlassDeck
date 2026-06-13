@@ -275,6 +275,85 @@ input:focus-visible {
     0 24px 80px rgba(0, 0, 0, 0.18);
 }
 
+.dashboard-grid {
+  position: absolute;
+  inset: 34px 34px 132px;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(var(--dashboard-columns, 12), minmax(0, 1fr));
+  grid-auto-rows: var(--dashboard-row-height, 64px);
+  gap: var(--dashboard-gap, 12px);
+  align-content: start;
+  overflow: hidden;
+}
+
+.dashboard-card {
+  display: grid;
+  align-content: space-between;
+  min-width: 0;
+  min-height: 0;
+  padding: 14px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: 22px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.055)),
+    rgba(18, 18, 20, 0.52);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.13),
+    0 18px 46px rgba(0, 0, 0, 0.24);
+  backdrop-filter: blur(28px) saturate(170%);
+  -webkit-backdrop-filter: blur(28px) saturate(170%);
+}
+
+.dashboard-card-button {
+  color: inherit;
+  text-align: left;
+}
+
+.dashboard-card-button:hover {
+  background:
+    linear-gradient(180deg, rgba(10, 132, 255, 0.25), rgba(255, 255, 255, 0.075)),
+    rgba(18, 18, 20, 0.56);
+  transform: translateY(-2px);
+}
+
+.dashboard-card-eyebrow {
+  color: var(--ink-dim);
+  font-size: 0.68rem;
+  font-weight: 760;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.dashboard-card strong,
+.dashboard-card small,
+.dashboard-card-value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dashboard-card strong {
+  color: rgba(245, 245, 247, 0.92);
+  font-size: 0.95rem;
+  font-weight: 720;
+}
+
+.dashboard-card-value {
+  color: var(--ink);
+  font-size: 1.78rem;
+  font-weight: 760;
+  letter-spacing: 0;
+  line-height: 1;
+}
+
+.dashboard-card small {
+  color: var(--ink-dim);
+  font-size: 0.76rem;
+  font-weight: 540;
+}
+
 .action-dock {
   position: absolute;
   left: 50%;
@@ -844,6 +923,23 @@ input[type="range"]::-moz-range-thumb {
   .desktop-wallpaper {
     inset: 10px;
     border-radius: 28px;
+  }
+
+  .dashboard-grid {
+    inset: 18px 18px 104px;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    grid-auto-rows: 58px;
+    gap: 10px;
+  }
+
+  .dashboard-card {
+    grid-column: span 3 !important;
+    padding: 12px;
+    border-radius: 18px;
+  }
+
+  .dashboard-card-value {
+    font-size: 1.32rem;
   }
 
   .action-dock {
