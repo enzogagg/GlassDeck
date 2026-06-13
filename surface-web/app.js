@@ -248,7 +248,15 @@ function updateSurfaceIp(addresses = []) {
 }
 
 function syncBluetoothDaemon(bluetooth = {}) {
-  if (!bluetooth.recommended_url || (!state.autoDaemonUrl && state.online)) {
+  if (!bluetooth.recommended_url) {
+    return false;
+  }
+
+  if (!state.autoDaemonUrl && !state.online) {
+    state.autoDaemonUrl = true;
+  }
+
+  if (!state.autoDaemonUrl && state.online) {
     return false;
   }
 

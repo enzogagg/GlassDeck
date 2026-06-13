@@ -114,6 +114,9 @@ trust <mac-bluetooth-address>
 connect <mac-bluetooth-address>
 ```
 
+Once the device has been paired and trusted once, GlassDeck will retry the PAN
+connection automatically at startup.
+
 ### 5. Enable Bluetooth PAN on the Mac
 
 On macOS:
@@ -132,8 +135,9 @@ Back on the Surface, confirm that Linux created a Bluetooth network interface:
 ip addr show
 ```
 
-Look for an interface such as `bnep0`. GlassDeck uses this interface to find the
-Mac daemon without Wi-Fi.
+Look for an interface such as `bnep0`. GlassDeck uses this interface to find
+the Mac daemon without Wi-Fi. The launcher will try to reconnect paired devices
+automatically before starting the kiosk.
 
 ### 6. Start GlassDeck
 

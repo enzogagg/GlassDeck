@@ -8,6 +8,9 @@ horizontal system bar and a floating control center.
 The bar surfaces the Mac daemon connection state plus live Mac CPU, RAM, and
 temperature metrics, alongside the Surface battery and clock.
 
+If the Mac and Surface have already been paired and trusted once, the launcher
+tries to reconnect Bluetooth PAN automatically at startup.
+
 ## Run Locally
 
 From the repository root:
