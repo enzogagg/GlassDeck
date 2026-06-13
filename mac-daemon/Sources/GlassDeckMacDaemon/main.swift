@@ -526,7 +526,8 @@ final class MacTelemetrySampler {
 
         for candidate in candidates {
             if let output = commandOutput(executable: candidate),
-               let temperature = parseTemperature(output) {
+               let temperature = parseTemperature(output),
+               temperature > 0 {
                 return (temperature, candidate)
             }
         }

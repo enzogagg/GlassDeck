@@ -85,21 +85,14 @@ function updateClock() {
   }).format(now);
 }
 
-function formatBytes(bytes) {
-  if (!Number.isFinite(bytes) || bytes <= 0) {
+function formatMemoryPair(usedBytes, totalBytes) {
+  if (!Number.isFinite(usedBytes) || !Number.isFinite(totalBytes) || totalBytes <= 0) {
     return "--";
   }
 
-  const units = ["B", "KB", "MB", "GB", "TB"];
-  let value = bytes;
-  let unit = 0;
-
-  while (value >= 1024 && unit < units.length - 1) {
-    value /= 1024;
-    unit += 1;
-  }
-
-  return `${value >= 10 || unit === 0 ? Math.round(value) : value.toFixed(1)} ${units[unit]}`;
+  const totalGb = totalBytes / 1024 / 1024 / 1024;
+  const usedGb = usedBytes / 1024 / 1024 / 1024;
+  return `${usedGb.toFixed(1)}/${Math.round(totalGb)} GB`;
 }
 
 function formatPercent(value) {
@@ -107,7 +100,7 @@ function formatPercent(value) {
 }
 
 function formatTemperature(value) {
-  return Number.isFinite(value) ? `${Math.round(value)}°C` : "--°";
+  return Number.isFinite(value) && value > 0 ? `${Math.round(value)}°C` : "--°";
 }
 
 function readMetric(metrics, camelKey, snakeKey) {
@@ -204,9 +197,11 @@ async function sendSurfaceControl(control, value) {
 function updateMachineInfo() {
   const host = daemonHostLabel();
   const isBluetoothTarget = state.autoDaemonUrl && daemonBaseUrl !== defaultDaemonBaseUrl;
-  elements.machineIp.textContent = `${isBluetoothTarget ? "BT" : "IP"} ${host}`;
+  if (elements.machineIp) {
+    elements.machineIp.textContent = `${isBluetoothTarget ? "BT" : "IP"} ${host}`;
+  }
   elements.ipDetail.textContent = host;
-  elements.daemonUrl.textContent = daemonBaseUrl;
+  elements.daemonUrl.textContent = `${isBluetoothTarget ? "Bluetooth/PAN" : "Réseau"} · ${daemonBaseUrl}`;
 }
 
 function updateMacMetrics(metrics = null) {
@@ -214,7 +209,8 @@ function updateMacMetrics(metrics = null) {
 
   const cpuPercent = readMetric(metrics, "cpuPercent", "cpu_percent");
   const memoryPercent = readMetric(metrics, "memoryPercent", "memory_percent");
-  const temperature = readMetric(metrics, "temperatureCelsius", "temperature_celsius");
+  const rawTemperature = readMetric(metrics, "temperatureCelsius", "temperature_celsius");
+  const temperature = Number.isFinite(rawTemperature) && rawTemperature > 0 ? rawTemperature : null;
   const memoryUsedBytes = readMetric(metrics, "memoryUsedBytes", "memory_used_bytes");
   const memoryTotalBytes = readMetric(metrics, "memoryTotalBytes", "memory_total_bytes");
 
@@ -224,17 +220,18 @@ function updateMacMetrics(metrics = null) {
 
   elements.macMetrics.textContent = `CPU ${cpuLabel} · RAM ${memoryLabel} · Temp ${temperatureLabel}`;
   elements.macMetricsDetail.textContent = metrics
-    ? `Actualisé ${new Intl.DateTimeFormat("fr-FR", {
+    ? `Maj ${new Intl.DateTimeFormat("fr-FR", {
         hour: "2-digit",
         minute: "2-digit",
         second: "2-digit",
+        timeZone: "Europe/Paris",
       }).format(new Date())}`
     : "--";
 
   elements.cpuDetail.textContent = Number.isFinite(cpuPercent) ? formatPercent(cpuPercent) : "--%";
   elements.memoryDetail.textContent =
     Number.isFinite(memoryUsedBytes) && Number.isFinite(memoryTotalBytes)
-      ? `${formatBytes(memoryUsedBytes)} / ${formatBytes(memoryTotalBytes)}`
+      ? formatMemoryPair(memoryUsedBytes, memoryTotalBytes)
       : Number.isFinite(memoryPercent)
         ? formatPercent(memoryPercent)
         : "--";
@@ -570,4 +567,4 @@ refreshSurfaceStatus();
 refreshStatus();
 setInterval(updateClock, 1000);
 setInterval(refreshSurfaceStatus, 1000);
-setInterval(refreshStatus, 5000);
+setInterval(refreshStatus, 1000);
