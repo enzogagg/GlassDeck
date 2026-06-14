@@ -9,7 +9,7 @@ struct GlassDeckMacApp: App {
             StudioView(model: model)
         }
         .windowStyle(.hiddenTitleBar)
-        .defaultSize(width: 1180, height: 760)
+        .defaultSize(width: 1360, height: 860)
 
         MenuBarExtra("GlassDeck", systemImage: "rectangle.connected.to.line.below") {
             Button(model.isOnline ? "Daemon connecté" : "Daemon hors ligne") {
@@ -195,7 +195,7 @@ struct StudioHeader: View {
                     .font(.caption.weight(.bold))
                     .foregroundStyle(.secondary)
                     .textCase(.uppercase)
-                Text("Dashboard Surface")
+                Text(model.activeSurface == .dashboard ? "Canvas" : "Control Center")
                     .font(.system(size: 32, weight: .bold))
                     .lineLimit(1)
                 Text(model.lastMessage)
@@ -271,20 +271,15 @@ struct DashboardCanvas: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(model.dashboard.name)
                         .font(.title2.bold())
-                    Text("Aperçu du dashboard envoyé à la Surface")
+                    Text("Glisse les cartes sur la grille, puis publie vers la Surface")
                         .font(.callout)
                         .foregroundStyle(.secondary)
                 }
 
                 Spacer()
-
-                Button {
-                    model.addCard()
-                } label: {
-                    Label("Ajouter une carte", systemImage: "plus")
-                }
-                .buttonStyle(.borderedProminent)
             }
+
+            CardLibrary(model: model)
 
             DashboardPreviewLayout(model: model)
 
@@ -301,8 +296,70 @@ struct DashboardCanvas: View {
     }
 }
 
+struct CardLibrary: View {
+    @Bindable var model: GlassDeckStudioModel
+
+    var body: some View {
+        HStack(spacing: 10) {
+            LibraryCard(symbol: "chart.line.uptrend.xyaxis", title: "Métrique", subtitle: "CPU, RAM, température") {
+                model.addCard(type: .metric)
+            }
+            LibraryCard(symbol: "checkmark.circle", title: "Statut", subtitle: "Connexion, état") {
+                model.addCard(type: .status)
+            }
+            LibraryCard(symbol: "button.programmable", title: "Bouton", subtitle: "Action Mac") {
+                model.addCard(type: .button)
+            }
+            Spacer()
+            Text("Ajoute une carte, puis déplace-la sur la grille.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .padding(10)
+        .background(Color.black.opacity(0.16))
+        .clipShape(RoundedRectangle(cornerRadius: 22))
+        .overlay(
+            RoundedRectangle(cornerRadius: 22)
+                .stroke(.white.opacity(0.08), lineWidth: 1)
+        )
+    }
+}
+
+struct LibraryCard: View {
+    let symbol: String
+    let title: String
+    let subtitle: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 10) {
+                Image(systemName: symbol)
+                    .font(.system(size: 16, weight: .semibold))
+                    .frame(width: 34, height: 34)
+                    .background(Color.white.opacity(0.09))
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(.callout.weight(.semibold))
+                    Text(subtitle)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 8)
+            .background(Color.white.opacity(0.055))
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+        }
+        .buttonStyle(.plain)
+    }
+}
+
 struct DashboardPreviewLayout: View {
     @Bindable var model: GlassDeckStudioModel
+    @State private var draggingCardID: String?
+    @State private var dragTranslation: CGSize = .zero
 
     var body: some View {
         GeometryReader { proxy in
@@ -324,19 +381,43 @@ struct DashboardPreviewLayout: View {
                     let height = rowHeight * CGFloat(heightUnits) + gap * CGFloat(heightUnits - 1)
                     let originX = CGFloat(x) * (cellWidth + gap)
                     let originY = CGFloat(max(0, card.y)) * (rowHeight + gap)
+                    let isDragging = draggingCardID == card.id
 
                     Button {
                         model.selectedCardID = card.id
                     } label: {
                         CanvasCard(card: card, value: model.previewValue(for: card))
                             .frame(width: width, height: height)
+                            .scaleEffect(isDragging ? 1.035 : 1)
+                            .shadow(color: isDragging ? .black.opacity(0.34) : .clear, radius: 18, y: 12)
                             .overlay(
                                 RoundedRectangle(cornerRadius: 22)
                                     .stroke(model.selectedCardID == card.id ? Color.accentColor : .clear, lineWidth: 2)
                             )
                     }
                     .buttonStyle(.plain)
+                    .offset(isDragging ? dragTranslation : .zero)
                     .position(x: originX + width / 2, y: originY + height / 2)
+                    .zIndex(isDragging ? 10 : 1)
+                    .gesture(
+                        DragGesture(minimumDistance: 4)
+                            .onChanged { value in
+                                model.selectedCardID = card.id
+                                draggingCardID = card.id
+                                dragTranslation = value.translation
+                            }
+                            .onEnded { value in
+                                model.moveCard(
+                                    id: card.id,
+                                    translation: value.translation,
+                                    cellWidth: cellWidth,
+                                    rowHeight: rowHeight,
+                                    gap: gap
+                                )
+                                draggingCardID = nil
+                                dragTranslation = .zero
+                            }
+                    )
                 }
             }
         }
@@ -1063,22 +1144,68 @@ final class GlassDeckStudioModel {
         }
     }
 
-    func addCard() {
+    func addCard(type: DashboardCardType = .metric) {
         activeSurface = .dashboard
+        let nextPosition = nextCardPosition(width: type == .button ? 3 : 3, height: 2)
         let card = DashboardCard(
             id: "card-\(UUID().uuidString.prefix(8))",
-            type: .metric,
-            title: "Nouvelle carte",
-            subtitle: "Entité Mac",
-            entity: "mac.cpu_percent",
-            action: nil,
-            x: 0,
-            y: max(0, (dashboard.cards.map(\.y).max() ?? 0) + 2),
+            type: type,
+            title: defaultTitle(for: type),
+            subtitle: defaultSubtitle(for: type),
+            entity: type == .button ? nil : "mac.cpu_percent",
+            action: type == .button ? (actions.first?.id ?? "ping") : nil,
+            x: nextPosition.x,
+            y: nextPosition.y,
             w: 3,
             h: 2
         )
         dashboard.cards.append(card)
         selectedCardID = card.id
+    }
+
+    func moveCard(id: String, translation: CGSize, cellWidth: CGFloat, rowHeight: CGFloat, gap: CGFloat) {
+        guard let index = dashboard.cards.firstIndex(where: { $0.id == id }) else { return }
+
+        let columnStep = max(1, cellWidth + gap)
+        let rowStep = max(1, rowHeight + gap)
+        let deltaX = Int((translation.width / columnStep).rounded())
+        let deltaY = Int((translation.height / rowStep).rounded())
+        guard deltaX != 0 || deltaY != 0 else { return }
+
+        var card = dashboard.cards[index]
+        let maxX = max(0, dashboard.grid.columns - card.w)
+        card.x = min(max(0, card.x + deltaX), maxX)
+        card.y = min(max(0, card.y + deltaY), 12)
+        dashboard.cards[index] = card
+    }
+
+    private func nextCardPosition(width: Int, height: Int) -> (x: Int, y: Int) {
+        let columns = max(1, dashboard.grid.columns)
+        for y in 0...12 {
+            for x in 0...max(0, columns - width) {
+                let candidate = DashboardRect(x: x, y: y, w: width, h: height)
+                if dashboard.cards.allSatisfy({ !candidate.intersects(DashboardRect(card: $0)) }) {
+                    return (x, y)
+                }
+            }
+        }
+        return (0, max(0, (dashboard.cards.map { $0.y + $0.h }.max() ?? 0)))
+    }
+
+    private func defaultTitle(for type: DashboardCardType) -> String {
+        switch type {
+        case .metric: "Métrique"
+        case .status: "Statut Mac"
+        case .button: "Action"
+        }
+    }
+
+    private func defaultSubtitle(for type: DashboardCardType) -> String {
+        switch type {
+        case .metric: "Entité Mac"
+        case .status: "Connexion"
+        case .button: "Commande Mac"
+        }
     }
 
     func deleteSelectedCard() {
@@ -1256,6 +1383,31 @@ struct DashboardDockAction: Codable, Identifiable, Equatable {
     var id: String
     var title: String
     var action: String
+}
+
+struct DashboardRect {
+    let x: Int
+    let y: Int
+    let w: Int
+    let h: Int
+
+    init(x: Int, y: Int, w: Int, h: Int) {
+        self.x = x
+        self.y = y
+        self.w = w
+        self.h = h
+    }
+
+    init(card: DashboardCard) {
+        self.init(x: card.x, y: card.y, w: card.w, h: card.h)
+    }
+
+    func intersects(_ other: DashboardRect) -> Bool {
+        x < other.x + other.w &&
+            x + w > other.x &&
+            y < other.y + other.h &&
+            y + h > other.y
+    }
 }
 
 enum DashboardCardType: String, Codable, CaseIterable, Identifiable {
