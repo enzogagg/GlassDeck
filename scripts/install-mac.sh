@@ -60,6 +60,14 @@ launchctl bootstrap "gui/$(id -u)" "$PLIST_FILE"
 launchctl enable "gui/$(id -u)/$LABEL"
 launchctl kickstart -k "gui/$(id -u)/$LABEL"
 
+sleep 1
+if command -v curl >/dev/null 2>&1; then
+  if ! curl -fsS "http://127.0.0.1:7878/dashboards/main" >/dev/null; then
+    echo "Warning: daemon started, but the dashboard endpoint is not reachable yet." >&2
+    echo "Check logs: $LOG_DIR/mac-daemon.err.log" >&2
+  fi
+fi
+
 if command -v brew >/dev/null 2>&1 && ! command -v osx-cpu-temp >/dev/null 2>&1; then
   echo "Installing optional osx-cpu-temp sensor helper..."
   brew install osx-cpu-temp || true
