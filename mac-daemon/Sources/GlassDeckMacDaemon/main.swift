@@ -408,6 +408,7 @@ struct DashboardDefinition: Codable {
     let name: String
     let grid: DashboardGrid
     let cards: [DashboardCard]
+    let dockActions: [DashboardDockAction]
 
     static let defaultMain = DashboardDefinition(
         id: "main",
@@ -474,6 +475,11 @@ struct DashboardDefinition: Codable {
                 w: 3,
                 h: 2
             ),
+        ],
+        dockActions: [
+            DashboardDockAction(id: "dock-ping", title: "Ping", action: "ping"),
+            DashboardDockAction(id: "dock-apps", title: "Apps", action: "open-applications"),
+            DashboardDockAction(id: "dock-sync", title: "Sync", action: "status"),
         ]
     )
 }
@@ -495,6 +501,12 @@ struct DashboardCard: Codable {
     let y: Int
     let w: Int
     let h: Int
+}
+
+struct DashboardDockAction: Codable {
+    let id: String
+    let title: String
+    let action: String
 }
 
 enum DashboardCardType: String, Codable {

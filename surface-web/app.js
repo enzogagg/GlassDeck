@@ -37,6 +37,7 @@ const elements = {
   controlCenter: document.querySelector("#control-center"),
   controlCenterButton: document.querySelector("#control-center-button"),
   controlSummary: document.querySelector("#control-summary"),
+  actionDock: document.querySelector(".action-dock"),
   dashboardGrid: document.querySelector("#dashboard-grid"),
   daemonLabel: document.querySelector("#daemon-label"),
   daemonState: document.querySelector("#daemon-state"),
@@ -150,6 +151,7 @@ function renderDashboard(dashboard = state.dashboard) {
   }
 
   state.dashboard = dashboard;
+  renderDock(dashboard);
   const grid = dashboard.grid || {};
   const columns = Number(grid.columns) || 12;
   const rowHeight = Number(grid.rowHeight ?? grid.row_height) || 64;
@@ -192,6 +194,44 @@ function renderDashboard(dashboard = state.dashboard) {
 
     item.append(eyebrow, title, value, subtitle);
     elements.dashboardGrid.append(item);
+  }
+}
+
+function dockIconClass(action) {
+  if (action === "open-applications") {
+    return "dock-icon-apps";
+  }
+  if (action === "status") {
+    return "dock-icon-sync";
+  }
+  return "dock-icon-ping";
+}
+
+function renderDock(dashboard = state.dashboard) {
+  if (!elements.actionDock || !dashboard) {
+    return;
+  }
+
+  const dockActions = dashboard.dockActions || dashboard.dock_actions || [];
+  if (dockActions.length === 0) {
+    return;
+  }
+
+  elements.actionDock.innerHTML = "";
+  for (const dockAction of dockActions) {
+    const button = document.createElement("button");
+    const icon = document.createElement("span");
+    const label = document.createElement("small");
+
+    button.className = "dock-button";
+    button.type = "button";
+    button.dataset.action = dockAction.action;
+    button.setAttribute("aria-label", dockAction.title || dockAction.action);
+    icon.className = `dock-icon ${dockIconClass(dockAction.action)}`;
+    icon.setAttribute("aria-hidden", "true");
+    label.textContent = dockAction.title || dockAction.action;
+    button.append(icon, label);
+    elements.actionDock.append(button);
   }
 }
 
@@ -689,7 +729,17 @@ elements.quitButton.addEventListener("click", () => {
 });
 
 document.querySelectorAll("[data-action]").forEach((button) => {
+  if (button.closest(".action-dock")) {
+    return;
+  }
   button.addEventListener("click", () => executeAction(button.dataset.action));
+});
+
+elements.actionDock?.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-action]");
+  if (button?.dataset.action) {
+    executeAction(button.dataset.action);
+  }
 });
 
 elements.bluetoothDevices.addEventListener("click", (event) => {

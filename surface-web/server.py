@@ -542,6 +542,11 @@ def default_dashboard():
                 "h": 2,
             },
         ],
+        "dock_actions": [
+            {"id": "dock-ping", "title": "Ping", "action": "ping"},
+            {"id": "dock-apps", "title": "Apps", "action": "open-applications"},
+            {"id": "dock-sync", "title": "Sync", "action": "status"},
+        ],
     }
 
 
