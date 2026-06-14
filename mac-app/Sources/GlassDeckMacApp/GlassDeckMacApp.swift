@@ -65,24 +65,39 @@ struct StudioSidebar: View {
     @Bindable var model: GlassDeckStudioModel
 
     var body: some View {
-        VStack(spacing: 14) {
+        VStack(spacing: 16) {
             LogoBadge()
-                .padding(.bottom, 10)
 
-            SidebarButton(symbol: "rectangle.grid.3x2", title: "Dashboard", active: true)
-            SidebarButton(symbol: "dock.rectangle", title: "Dock", active: false)
-            SidebarButton(symbol: "bolt.horizontal", title: "Actions", active: false)
+            Capsule()
+                .fill(.white.opacity(0.14))
+                .frame(width: 30, height: 3)
 
             Spacer()
 
-            Circle()
-                .fill(model.isOnline ? Color.green : Color.orange)
-                .frame(width: 10, height: 10)
-                .shadow(color: model.isOnline ? .green.opacity(0.45) : .orange.opacity(0.35), radius: 8)
+            VStack(spacing: 8) {
+                Circle()
+                    .fill(model.isOnline ? Color.green : Color.orange)
+                    .frame(width: 10, height: 10)
+                    .shadow(color: model.isOnline ? .green.opacity(0.45) : .orange.opacity(0.35), radius: 8)
+                Text(model.isOnline ? "On" : "Off")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.secondary)
+            }
         }
-        .padding(.vertical, 20)
-        .frame(minWidth: 92)
-        .background(.ultraThinMaterial)
+        .padding(.vertical, 22)
+        .frame(minWidth: 72)
+        .background(
+            LinearGradient(
+                colors: [Color.white.opacity(0.10), Color.white.opacity(0.035)],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+        )
+        .overlay(alignment: .trailing) {
+            Rectangle()
+                .fill(.white.opacity(0.08))
+                .frame(width: 1)
+        }
     }
 }
 
@@ -117,25 +132,6 @@ struct LogoBadge: View {
             }
         }
         .frame(width: 48, height: 48)
-    }
-}
-
-struct SidebarButton: View {
-    let symbol: String
-    let title: String
-    let active: Bool
-
-    var body: some View {
-        VStack(spacing: 6) {
-            Image(systemName: symbol)
-                .font(.system(size: 18, weight: .semibold))
-                .frame(width: 48, height: 44)
-                .background(active ? Color.accentColor.opacity(0.22) : Color.white.opacity(0.06))
-                .clipShape(RoundedRectangle(cornerRadius: 15))
-            Text(title)
-                .font(.caption2.weight(.semibold))
-                .foregroundStyle(.secondary)
-        }
     }
 }
 
@@ -450,6 +446,9 @@ struct InspectorPanel: View {
                 SectionHeader(title: "Barre horizontale du bas", subtitle: "Boutons visibles sur la Surface")
                 DockEditor(model: model)
 
+                SectionHeader(title: "Centre de contrôle", subtitle: "Cartes visibles dans le panneau Surface")
+                ControlCenterCardEditor(model: model)
+
                 SectionHeader(title: "Daemon", subtitle: model.isOnline ? "Service local prêt" : "Service local indisponible")
                 GlassPanel {
                     Text(model.lastMessage)
@@ -565,6 +564,51 @@ struct DockEditor: View {
         }
     }
 
+}
+
+struct ControlCenterCardEditor: View {
+    @Bindable var model: GlassDeckStudioModel
+
+    var body: some View {
+        GlassPanel {
+            ForEach($model.dashboard.controlCenterCards) { $card in
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack(spacing: 10) {
+                        TextField("Titre", text: $card.title)
+                        Picker("Type", selection: $card.type) {
+                            ForEach(DashboardCardType.allCases) { type in
+                                Text(type.displayName).tag(type)
+                            }
+                        }
+                        .frame(width: 112)
+                    }
+
+                    HStack(spacing: 10) {
+                        Picker("Entité", selection: stringBinding($card.entity, fallback: "mac.cpu_percent")) {
+                            ForEach(DashboardEntity.allCases) { entity in
+                                Text(entity.title).tag(entity.rawValue)
+                            }
+                        }
+                        .frame(maxWidth: .infinity)
+
+                        Button {
+                            model.deleteControlCenterCard(card.id)
+                        } label: {
+                            Image(systemName: "minus.circle.fill")
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.vertical, 3)
+            }
+
+            Button {
+                model.addControlCenterCard()
+            } label: {
+                Label("Ajouter une carte", systemImage: "plus")
+            }
+        }
+    }
 }
 
 struct GlassPanel<Content: View>: View {
@@ -763,6 +807,27 @@ final class GlassDeckStudioModel {
         dashboard.dockActions.removeAll { $0.id == id }
     }
 
+    func addControlCenterCard() {
+        dashboard.controlCenterCards.append(
+            DashboardCard(
+                id: "control-\(UUID().uuidString.prefix(8))",
+                type: .metric,
+                title: "Nouvelle carte",
+                subtitle: "Centre de contrôle",
+                entity: "mac.cpu_percent",
+                action: nil,
+                x: 0,
+                y: 0,
+                w: 1,
+                h: 1
+            )
+        )
+    }
+
+    func deleteControlCenterCard(_ id: String) {
+        dashboard.controlCenterCards.removeAll { $0.id == id }
+    }
+
     func previewValue(for card: DashboardCard) -> String {
         if card.type == .button {
             return "Action"
@@ -810,6 +875,42 @@ struct DashboardDefinition: Codable {
     var grid: DashboardGrid
     var cards: [DashboardCard]
     var dockActions: [DashboardDockAction]
+    var controlCenterCards: [DashboardCard]
+
+    init(
+        id: String,
+        name: String,
+        grid: DashboardGrid,
+        cards: [DashboardCard],
+        dockActions: [DashboardDockAction],
+        controlCenterCards: [DashboardCard]
+    ) {
+        self.id = id
+        self.name = name
+        self.grid = grid
+        self.cards = cards
+        self.dockActions = dockActions
+        self.controlCenterCards = controlCenterCards
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case name
+        case grid
+        case cards
+        case dockActions
+        case controlCenterCards
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        name = try container.decode(String.self, forKey: .name)
+        grid = try container.decode(DashboardGrid.self, forKey: .grid)
+        cards = try container.decode([DashboardCard].self, forKey: .cards)
+        dockActions = try container.decodeIfPresent([DashboardDockAction].self, forKey: .dockActions) ?? DashboardDefinition.defaultDockActions
+        controlCenterCards = try container.decodeIfPresent([DashboardCard].self, forKey: .controlCenterCards) ?? DashboardDefinition.defaultControlCenterCards
+    }
 
     static let defaultMain = DashboardDefinition(
         id: "main",
@@ -822,12 +923,21 @@ struct DashboardDefinition: Codable {
             DashboardCard(id: "mac-temperature", type: .metric, title: "Température", subtitle: "Capteur Mac", entity: "mac.temperature_celsius", action: nil, x: 9, y: 0, w: 3, h: 2),
             DashboardCard(id: "open-apps", type: .button, title: "Applications", subtitle: "Ouvrir sur le Mac", entity: nil, action: "open-applications", x: 0, y: 2, w: 3, h: 2),
         ],
-        dockActions: [
+        dockActions: defaultDockActions,
+        controlCenterCards: defaultControlCenterCards
+    )
+
+    static let defaultDockActions = [
             DashboardDockAction(id: "dock-ping", title: "Ping", action: "ping"),
             DashboardDockAction(id: "dock-apps", title: "Apps", action: "open-applications"),
             DashboardDockAction(id: "dock-sync", title: "Sync", action: "status"),
-        ]
-    )
+    ]
+
+    static let defaultControlCenterCards = [
+        DashboardCard(id: "control-cpu", type: .metric, title: "CPU", subtitle: "Utilisation Mac", entity: "mac.cpu_percent", action: nil, x: 0, y: 0, w: 1, h: 1),
+        DashboardCard(id: "control-memory", type: .metric, title: "RAM", subtitle: "Mémoire utilisée", entity: "mac.memory_percent", action: nil, x: 0, y: 0, w: 1, h: 1),
+        DashboardCard(id: "control-temperature", type: .metric, title: "Température", subtitle: "Capteur Mac", entity: "mac.temperature_celsius", action: nil, x: 0, y: 0, w: 1, h: 1),
+    ]
 }
 
 struct DashboardGrid: Codable {

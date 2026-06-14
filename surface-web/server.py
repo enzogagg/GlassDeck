@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import json
+import hashlib
 import mimetypes
 import os
 import shutil
@@ -547,6 +548,41 @@ def default_dashboard():
             {"id": "dock-apps", "title": "Apps", "action": "open-applications"},
             {"id": "dock-sync", "title": "Sync", "action": "status"},
         ],
+        "control_center_cards": [
+            {
+                "id": "control-cpu",
+                "type": "metric",
+                "title": "CPU",
+                "subtitle": "Utilisation Mac",
+                "entity": "mac.cpu_percent",
+                "x": 0,
+                "y": 0,
+                "w": 1,
+                "h": 1,
+            },
+            {
+                "id": "control-memory",
+                "type": "metric",
+                "title": "RAM",
+                "subtitle": "Mémoire utilisée",
+                "entity": "mac.memory_percent",
+                "x": 0,
+                "y": 0,
+                "w": 1,
+                "h": 1,
+            },
+            {
+                "id": "control-temperature",
+                "type": "metric",
+                "title": "Température",
+                "subtitle": "Capteur Mac",
+                "entity": "mac.temperature_celsius",
+                "x": 0,
+                "y": 0,
+                "w": 1,
+                "h": 1,
+            },
+        ],
     }
 
 
@@ -558,19 +594,30 @@ def dashboard_snapshot(force=False):
 
         dashboard = daemon_json(candidate["url"], path="/dashboards/main")
         if dashboard is not None:
+            revision = dashboard_revision(dashboard)
             return {
                 "ok": True,
                 "url": candidate["url"],
                 "dashboard": dashboard,
+                "revision": revision,
+                "synced_at": time.time(),
                 "bluetooth": bluetooth,
             }
 
+    fallback_dashboard = default_dashboard()
     return {
         "ok": False,
         "url": bluetooth.get("recommended_url"),
-        "dashboard": default_dashboard(),
+        "dashboard": fallback_dashboard,
+        "revision": dashboard_revision(fallback_dashboard),
+        "synced_at": time.time(),
         "bluetooth": bluetooth,
     }
+
+
+def dashboard_revision(dashboard):
+    payload = json.dumps(dashboard, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:16]
 
 
 def battery_snapshot():

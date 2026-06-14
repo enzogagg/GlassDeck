@@ -6,7 +6,7 @@
     <meta name="google" content="notranslate" />
     <title>GlassDeck Surface</title>
     <link rel="icon" href="./glassdeck-logo.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="./styles.css?v=9" />
+    <link rel="stylesheet" href="./styles.css?v=10" />
   </head>
   <body>
     <div id="screen-dimmer" class="screen-dimmer" aria-hidden="true"></div>
@@ -140,22 +140,9 @@
 
           <section class="control-card telemetry-card compact-card">
             <div class="slider-header">
-              <span class="control-label">Mac</span>
+              <span class="control-label">Cartes Mac</span>
             </div>
-            <div class="telemetry-grid">
-              <div>
-                <span>CPU</span>
-                <strong id="cpu-detail">--%</strong>
-              </div>
-              <div>
-                <span>RAM</span>
-                <strong id="memory-detail">--</strong>
-              </div>
-              <div>
-                <span>Température</span>
-                <strong id="temperature-detail">--</strong>
-              </div>
-            </div>
+            <div id="control-center-cards" class="control-center-cards"></div>
           </section>
 
           <section class="control-card slider-card compact-card">
@@ -196,6 +183,6 @@
       </aside>
     </main>
 
-    <script src="./app.js?v=16" type="module"></script>
+    <script src="./app.js?v=17" type="module"></script>
   </body>
 </html>

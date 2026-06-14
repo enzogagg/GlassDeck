@@ -715,7 +715,8 @@ input:focus-visible {
 
 .network-tile,
 .status-card div,
-.telemetry-grid div {
+.telemetry-grid div,
+.control-center-card {
   min-width: 0;
 }
 
@@ -731,6 +732,57 @@ input:focus-visible {
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 12px;
+}
+
+.control-center-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.control-center-card {
+  display: grid;
+  gap: 5px;
+  min-height: 76px;
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 17px;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.045)),
+    rgba(255, 255, 255, 0.045);
+  color: inherit;
+  text-align: left;
+}
+
+.control-center-card span,
+.control-center-card small,
+.control-center-card strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.control-center-card span {
+  color: var(--ink-muted);
+  font-size: 0.68rem;
+  font-weight: 760;
+  letter-spacing: 0;
+}
+
+.control-center-card strong {
+  color: var(--ink);
+  font-size: 1.05rem;
+  font-weight: 780;
+}
+
+.control-center-card small {
+  margin-top: 0;
+  color: var(--ink-dim);
+  font-size: 0.68rem;
+}
+
+.control-center-card-button {
+  cursor: pointer;
 }
 
 .device-list {

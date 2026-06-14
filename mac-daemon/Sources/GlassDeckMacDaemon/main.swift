@@ -404,11 +404,47 @@ final class DashboardStore: @unchecked Sendable {
 }
 
 struct DashboardDefinition: Codable {
-    let id: String
-    let name: String
-    let grid: DashboardGrid
-    let cards: [DashboardCard]
-    let dockActions: [DashboardDockAction]
+    var id: String
+    var name: String
+    var grid: DashboardGrid
+    var cards: [DashboardCard]
+    var dockActions: [DashboardDockAction]
+    var controlCenterCards: [DashboardCard]
+
+    init(
+        id: String,
+        name: String,
+        grid: DashboardGrid,
+        cards: [DashboardCard],
+        dockActions: [DashboardDockAction],
+        controlCenterCards: [DashboardCard]
+    ) {
+        self.id = id
+        self.name = name
+        self.grid = grid
+        self.cards = cards
+        self.dockActions = dockActions
+        self.controlCenterCards = controlCenterCards
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case name
+        case grid
+        case cards
+        case dockActions
+        case controlCenterCards
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        name = try container.decode(String.self, forKey: .name)
+        grid = try container.decode(DashboardGrid.self, forKey: .grid)
+        cards = try container.decode([DashboardCard].self, forKey: .cards)
+        dockActions = try container.decodeIfPresent([DashboardDockAction].self, forKey: .dockActions) ?? DashboardDefinition.defaultDockActions
+        controlCenterCards = try container.decodeIfPresent([DashboardCard].self, forKey: .controlCenterCards) ?? DashboardDefinition.defaultControlCenterCards
+    }
 
     static let defaultMain = DashboardDefinition(
         id: "main",
@@ -476,12 +512,21 @@ struct DashboardDefinition: Codable {
                 h: 2
             ),
         ],
-        dockActions: [
+        dockActions: defaultDockActions,
+        controlCenterCards: defaultControlCenterCards
+    )
+
+    static let defaultDockActions = [
             DashboardDockAction(id: "dock-ping", title: "Ping", action: "ping"),
             DashboardDockAction(id: "dock-apps", title: "Apps", action: "open-applications"),
             DashboardDockAction(id: "dock-sync", title: "Sync", action: "status"),
-        ]
-    )
+    ]
+
+    static let defaultControlCenterCards = [
+        DashboardCard(id: "control-cpu", type: .metric, title: "CPU", subtitle: "Utilisation Mac", entity: "mac.cpu_percent", action: nil, x: 0, y: 0, w: 1, h: 1),
+        DashboardCard(id: "control-memory", type: .metric, title: "RAM", subtitle: "Mémoire utilisée", entity: "mac.memory_percent", action: nil, x: 0, y: 0, w: 1, h: 1),
+        DashboardCard(id: "control-temperature", type: .metric, title: "Température", subtitle: "Capteur Mac", entity: "mac.temperature_celsius", action: nil, x: 0, y: 0, w: 1, h: 1),
+    ]
 }
 
 struct DashboardGrid: Codable {

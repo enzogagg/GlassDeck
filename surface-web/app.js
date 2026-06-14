@@ -21,6 +21,8 @@ const state = {
   brightness: Number(localStorage.getItem("glassdeck-brightness") || "100"),
   volume: Number(localStorage.getItem("glassdeck-volume") || "70"),
   dashboard: null,
+  dashboardRevision: null,
+  dashboardSyncInFlight: false,
   metrics: null,
 };
 
@@ -37,6 +39,7 @@ const elements = {
   brightnessValue: document.querySelector("#brightness-value"),
   clock: document.querySelector("#clock"),
   controlCenter: document.querySelector("#control-center"),
+  controlCenterCards: document.querySelector("#control-center-cards"),
   controlCenterButton: document.querySelector("#control-center-button"),
   controlSummary: document.querySelector("#control-summary"),
   actionDock: document.querySelector(".action-dock"),
@@ -154,6 +157,7 @@ function renderDashboard(dashboard = state.dashboard) {
 
   state.dashboard = dashboard;
   renderDock(dashboard);
+  renderControlCenterCards(dashboard);
   const grid = dashboard.grid || {};
   const columns = Number(grid.columns) || 12;
   const rowHeight = Number(grid.rowHeight ?? grid.row_height) || 64;
@@ -196,6 +200,35 @@ function renderDashboard(dashboard = state.dashboard) {
 
     item.append(eyebrow, title, value, subtitle);
     elements.dashboardGrid.append(item);
+  }
+}
+
+function renderControlCenterCards(dashboard = state.dashboard) {
+  if (!elements.controlCenterCards || !dashboard) {
+    return;
+  }
+
+  const cards = dashboard.controlCenterCards || dashboard.control_center_cards || [];
+  elements.controlCenterCards.innerHTML = "";
+
+  for (const card of cards) {
+    const item = document.createElement(card.type === "button" ? "button" : "article");
+    const title = document.createElement("span");
+    const value = document.createElement("strong");
+    const subtitle = document.createElement("small");
+
+    item.className = `control-center-card control-center-card-${card.type || "metric"}`;
+    title.textContent = card.title || "Carte";
+    value.textContent = card.type === "button" ? "Action" : readDashboardValue(card.entity);
+    subtitle.textContent = card.subtitle || card.entity || card.action || "";
+
+    if (card.type === "button") {
+      item.type = "button";
+      item.dataset.dashboardAction = card.action || "";
+    }
+
+    item.append(title, value, subtitle);
+    elements.controlCenterCards.append(item);
   }
 }
 
@@ -379,16 +412,22 @@ function updateMacMetrics(metrics = null) {
   if (elements.homeTemperature) {
     elements.homeTemperature.textContent = temperatureLabel;
   }
-  elements.cpuDetail.textContent = Number.isFinite(cpuPercent) ? formatPercent(cpuPercent) : "--%";
-  elements.memoryDetail.textContent =
-    Number.isFinite(memoryUsedBytes) && Number.isFinite(memoryTotalBytes)
-      ? formatMemoryPair(memoryUsedBytes, memoryTotalBytes)
-      : Number.isFinite(memoryPercent)
-        ? formatPercent(memoryPercent)
-        : "--";
-  elements.temperatureDetail.textContent = Number.isFinite(temperature)
-    ? formatTemperature(temperature)
-    : temperatureDetail;
+  if (elements.cpuDetail) {
+    elements.cpuDetail.textContent = Number.isFinite(cpuPercent) ? formatPercent(cpuPercent) : "--%";
+  }
+  if (elements.memoryDetail) {
+    elements.memoryDetail.textContent =
+      Number.isFinite(memoryUsedBytes) && Number.isFinite(memoryTotalBytes)
+        ? formatMemoryPair(memoryUsedBytes, memoryTotalBytes)
+        : Number.isFinite(memoryPercent)
+          ? formatPercent(memoryPercent)
+          : "--";
+  }
+  if (elements.temperatureDetail) {
+    elements.temperatureDetail.textContent = Number.isFinite(temperature)
+      ? formatTemperature(temperature)
+      : temperatureDetail;
+  }
   renderDashboard();
 }
 
@@ -595,6 +634,11 @@ async function autoConnectMac() {
 }
 
 async function refreshDashboard() {
+  if (state.dashboardSyncInFlight) {
+    return;
+  }
+
+  state.dashboardSyncInFlight = true;
   try {
     const response = await fetch(`/dashboard${state.online ? "" : "?force=1"}`, {
       cache: "no-store",
@@ -606,11 +650,22 @@ async function refreshDashboard() {
     }
 
     const result = await response.json();
-    if (result.dashboard) {
+    if (result.url) {
+      setDaemonBaseUrl(result.url);
+    }
+
+    if (result.dashboard && (result.ok || !state.dashboard)) {
+      if (result.revision && result.revision === state.dashboardRevision) {
+        return;
+      }
+
+      state.dashboardRevision = result.revision || null;
       renderDashboard(result.dashboard);
     }
   } catch (error) {
     console.error("GlassDeck dashboard", error);
+  } finally {
+    state.dashboardSyncInFlight = false;
   }
 }
 
@@ -740,6 +795,7 @@ elements.refreshButton.addEventListener("click", refreshStatus);
 elements.dockRefreshButton.addEventListener("click", () => {
   refreshSurfaceStatus();
   refreshStatus();
+  refreshDashboard();
 });
 
 elements.bluetoothScanButton.addEventListener("click", () => {
@@ -805,6 +861,14 @@ elements.dashboardGrid?.addEventListener("click", (event) => {
   }
 });
 
+elements.controlCenterCards?.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-dashboard-action]");
+  const actionId = button?.dataset.dashboardAction;
+  if (actionId) {
+    executeAction(actionId);
+  }
+});
+
 document.addEventListener("click", (event) => {
   if (
     !elements.controlCenter.contains(event.target) &&
@@ -828,5 +892,5 @@ autoConnectMac();
 setInterval(updateClock, 1000);
 setInterval(refreshSurfaceStatus, 1000);
 setInterval(refreshStatus, 1000);
-setInterval(refreshDashboard, 5000);
+setInterval(refreshDashboard, 1200);
 setInterval(autoConnectMac, 3500);
