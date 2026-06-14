@@ -151,6 +151,18 @@ cd mac-app
 swift build
 ```
 
+Run the Mac configuration app:
+
+```sh
+./scripts/run-mac-app.sh
+```
+
+Equivalent Swift command from the repository root:
+
+```sh
+swift run GlassDeckMacApp
+```
+
 Run the Mac daemon:
 
 ```sh

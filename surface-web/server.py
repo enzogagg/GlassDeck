@@ -53,14 +53,14 @@ def local_ipv4_addresses():
     return filtered
 
 
-def bluetooth_daemon_snapshot():
+def bluetooth_daemon_snapshot(force=False):
     now = time.monotonic()
-    if _daemon_probe_cache["value"] is not None and now - _daemon_probe_cache["timestamp"] < DAEMON_PROBE_TTL_SECONDS:
+    if not force and _daemon_probe_cache["value"] is not None and now - _daemon_probe_cache["timestamp"] < DAEMON_PROBE_TTL_SECONDS:
         return _daemon_probe_cache["value"]
 
     interfaces = bluetooth_interfaces()
     candidates = daemon_candidates(interfaces)
-    candidates.extend(lan_daemon_candidates())
+    candidates.extend(lan_daemon_candidates(force=force))
     recommended = None
 
     for candidate in candidates:
@@ -361,9 +361,9 @@ def daemon_candidates(interfaces):
     return candidates
 
 
-def lan_daemon_candidates():
+def lan_daemon_candidates(force=False):
     now = time.monotonic()
-    if now - _lan_scan_cache["timestamp"] < DAEMON_LAN_SCAN_TTL_SECONDS:
+    if not force and now - _lan_scan_cache["timestamp"] < DAEMON_LAN_SCAN_TTL_SECONDS:
         return _lan_scan_cache["candidates"]
 
     hosts = []
@@ -457,8 +457,8 @@ def daemon_json(base_url, timeout=1.2, path="/status"):
         return None
 
 
-def mac_status_snapshot():
-    bluetooth = bluetooth_daemon_snapshot()
+def mac_status_snapshot(force=False):
+    bluetooth = bluetooth_daemon_snapshot(force=force)
     for candidate in bluetooth.get("candidates", []):
         if not candidate.get("reachable"):
             continue
@@ -550,8 +550,8 @@ def default_dashboard():
     }
 
 
-def dashboard_snapshot():
-    bluetooth = bluetooth_daemon_snapshot()
+def dashboard_snapshot(force=False):
+    bluetooth = bluetooth_daemon_snapshot(force=force)
     for candidate in bluetooth.get("candidates", []):
         if not candidate.get("reachable"):
             continue
@@ -712,24 +712,27 @@ class GlassDeckHandler(SimpleHTTPRequestHandler):
         super().__init__(*args, directory=str(ROOT_DIR), **kwargs)
 
     def do_GET(self):
-        if self.path.split("?", 1)[0] == "/surface-status":
+        request_path, _, query = self.path.partition("?")
+        force = "force=1" in query or "force=true" in query
+
+        if request_path == "/surface-status":
             self.write_json(
                 {
                     "addresses": local_ipv4_addresses(),
                     "battery": battery_snapshot(),
-                    "bluetooth": bluetooth_daemon_snapshot(),
+                    "bluetooth": bluetooth_daemon_snapshot(force=force),
                     "controls": control_snapshot(),
                     "install": install_snapshot(),
                 }
             )
             return
 
-        if self.path.split("?", 1)[0] == "/mac-status":
-            self.write_json(mac_status_snapshot())
+        if request_path == "/mac-status":
+            self.write_json(mac_status_snapshot(force=force))
             return
 
-        if self.path.split("?", 1)[0] == "/dashboard":
-            self.write_json(dashboard_snapshot())
+        if request_path == "/dashboard":
+            self.write_json(dashboard_snapshot(force=force))
             return
 
         super().do_GET()

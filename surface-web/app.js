@@ -14,6 +14,8 @@ const state = {
   bluetooth: null,
   selectedBluetoothAddress: null,
   controlTimers: new Map(),
+  reconnecting: false,
+  reconnectAttempts: 0,
   online: false,
   autoDaemonUrl: !storedDaemonBaseUrl,
   brightness: Number(localStorage.getItem("glassdeck-brightness") || "100"),
@@ -548,9 +550,53 @@ async function refreshSurfaceStatus() {
   }
 }
 
+async function autoConnectMac() {
+  if (state.online || state.reconnecting) {
+    return;
+  }
+
+  state.reconnecting = true;
+  state.reconnectAttempts += 1;
+  elements.daemonLabel.textContent = "Recherche...";
+  elements.controlSummary.textContent = `Recherche Mac · essai ${state.reconnectAttempts}`;
+
+  try {
+    const response = await fetch("/mac-status?force=1", {
+      cache: "no-store",
+      method: "GET",
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    const result = await response.json();
+    updateBluetoothDisplay(result.bluetooth || {});
+
+    if (result.url) {
+      setDaemonBaseUrl(result.url);
+    }
+
+    if (result.ok && result.status) {
+      state.actions = result.status.available_actions || fallbackActions;
+      updateMacMetrics(result.status.metrics || null);
+      setConnectionState(true);
+      refreshDashboard();
+      return;
+    }
+
+    await refreshStatus();
+  } catch (error) {
+    setConnectionState(false);
+    console.error("GlassDeck auto-connect", error);
+  } finally {
+    state.reconnecting = false;
+  }
+}
+
 async function refreshDashboard() {
   try {
-    const response = await fetch("/dashboard", {
+    const response = await fetch(`/dashboard${state.online ? "" : "?force=1"}`, {
       cache: "no-store",
       method: "GET",
     });
@@ -778,7 +824,9 @@ sendBluetoothControl("prepare");
 refreshSurfaceStatus();
 refreshStatus();
 refreshDashboard();
+autoConnectMac();
 setInterval(updateClock, 1000);
 setInterval(refreshSurfaceStatus, 1000);
 setInterval(refreshStatus, 1000);
 setInterval(refreshDashboard, 5000);
+setInterval(autoConnectMac, 3500);
