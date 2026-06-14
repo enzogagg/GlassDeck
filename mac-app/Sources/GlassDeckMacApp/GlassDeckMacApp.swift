@@ -583,13 +583,24 @@ struct ControlCenterCardEditor: View {
                         .frame(width: 112)
                     }
 
+                    TextField("Sous-titre", text: stringBinding($card.subtitle, fallback: ""))
+
                     HStack(spacing: 10) {
-                        Picker("Entité", selection: stringBinding($card.entity, fallback: "mac.cpu_percent")) {
-                            ForEach(DashboardEntity.allCases) { entity in
-                                Text(entity.title).tag(entity.rawValue)
+                        if card.type == .button {
+                            Picker("Action", selection: stringBinding($card.action, fallback: "ping")) {
+                                ForEach(model.actions) { action in
+                                    Text(action.label).tag(action.id)
+                                }
                             }
+                            .frame(maxWidth: .infinity)
+                        } else {
+                            Picker("Entité", selection: stringBinding($card.entity, fallback: "mac.cpu_percent")) {
+                                ForEach(DashboardEntity.allCases) { entity in
+                                    Text(entity.title).tag(entity.rawValue)
+                                }
+                            }
+                            .frame(maxWidth: .infinity)
                         }
-                        .frame(maxWidth: .infinity)
 
                         Button {
                             model.deleteControlCenterCard(card.id)

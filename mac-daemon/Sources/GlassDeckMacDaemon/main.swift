@@ -119,7 +119,7 @@ final class MacDaemon: @unchecked Sendable {
                 let decoder = JSONDecoder()
                 decoder.keyDecodingStrategy = .convertFromSnakeCase
                 let dashboard = try decoder.decode(DashboardDefinition.self, from: request.body)
-                dashboards.saveMainDashboard(dashboard)
+                try dashboards.saveMainDashboard(dashboard)
                 respond(connection: connection, response: .json(status: 200, value: dashboard))
             } catch {
                 respond(connection: connection, response: .text(status: 400, body: "Dashboard invalide: \(error)"))
@@ -388,18 +388,54 @@ struct ActionContext {
 }
 
 final class DashboardStore: @unchecked Sendable {
+    private let fileURL: URL
     private var dashboard: DashboardDefinition
 
     init() {
-        dashboard = DashboardDefinition.defaultMain
+        fileURL = Self.defaultFileURL()
+        dashboard = Self.loadDashboard(from: fileURL) ?? DashboardDefinition.defaultMain
     }
 
     func mainDashboard() -> DashboardDefinition {
         dashboard
     }
 
-    func saveMainDashboard(_ dashboard: DashboardDefinition) {
+    func saveMainDashboard(_ dashboard: DashboardDefinition) throws {
         self.dashboard = dashboard
+        try persist(dashboard)
+    }
+
+    private func persist(_ dashboard: DashboardDefinition) throws {
+        let directory = fileURL.deletingLastPathComponent()
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+
+        let encoder = JSONEncoder()
+        encoder.keyEncodingStrategy = .convertToSnakeCase
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        let data = try encoder.encode(dashboard)
+        try data.write(to: fileURL, options: .atomic)
+    }
+
+    private static func loadDashboard(from fileURL: URL) -> DashboardDefinition? {
+        do {
+            let data = try Data(contentsOf: fileURL)
+            let decoder = JSONDecoder()
+            decoder.keyDecodingStrategy = .convertFromSnakeCase
+            return try decoder.decode(DashboardDefinition.self, from: data)
+        } catch {
+            return nil
+        }
+    }
+
+    private static func defaultFileURL() -> URL {
+        if let supportURL = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first {
+            return supportURL
+                .appendingPathComponent("GlassDeck", isDirectory: true)
+                .appendingPathComponent("dashboard-main.json")
+        }
+
+        return URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+            .appendingPathComponent("dashboard-main.json")
     }
 }
 

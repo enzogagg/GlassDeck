@@ -270,7 +270,13 @@ Manage the installed LaunchAgent:
 HTTP endpoints:
 
 - `GET /status`: daemon uptime, connected clients, and available actions.
+- `GET /dashboards/main`: read the persisted Surface dashboard.
+- `PUT /dashboards/main`: publish and persist the Surface dashboard.
 - `POST /command`: execute an action request.
+
+Published dashboards are saved on the Mac in
+`~/Library/Application Support/GlassDeck/dashboard-main.json`, so the layout,
+dock actions, and control-center cards survive daemon/app restarts.
 
 Current action IDs:
 
@@ -292,7 +298,7 @@ The control center button opens quick controls for:
 - Target daemon host/IP.
 - Installation status, Bluetooth status, and Mac discovery status.
 - Bluetooth scan, reconnect, and forget controls.
-- Mac CPU, RAM, and temperature snapshot.
+- Configurable Mac cards published from the Mac app.
 - Surface battery state.
 - Local UI brightness dimming.
 - Placeholder volume state.
