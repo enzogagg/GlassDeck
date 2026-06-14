@@ -149,8 +149,12 @@ struct StudioHeader: View {
                     .font(.caption.weight(.bold))
                     .foregroundStyle(.secondary)
                     .textCase(.uppercase)
-                Text("Configure ta Surface Deck")
-                    .font(.system(size: 34, weight: .bold))
+                Text("Dashboard Surface")
+                    .font(.system(size: 32, weight: .bold))
+                    .lineLimit(1)
+                Text(model.lastMessage)
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
                     .lineLimit(1)
             }
 
@@ -215,8 +219,6 @@ struct StatusTile: View {
 struct DashboardCanvas: View {
     @Bindable var model: GlassDeckStudioModel
 
-    private let columns = Array(repeating: GridItem(.flexible(), spacing: 10), count: 12)
-
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
@@ -238,24 +240,7 @@ struct DashboardCanvas: View {
                 .buttonStyle(.borderedProminent)
             }
 
-            LazyVGrid(columns: columns, spacing: 10) {
-                ForEach(model.dashboard.cards) { card in
-                    Button {
-                        model.selectedCardID = card.id
-                    } label: {
-                        CanvasCard(card: card, value: model.previewValue(for: card))
-                            .frame(height: CGFloat(max(1, card.h)) * 64 + CGFloat(max(0, card.h - 1)) * 10)
-                    }
-                    .buttonStyle(.plain)
-                    .gridCellColumns(min(12, max(1, card.w)))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 22)
-                            .stroke(model.selectedCardID == card.id ? Color.accentColor : .clear, lineWidth: 2)
-                    )
-                }
-            }
-
-            Spacer()
+            DashboardPreviewLayout(model: model)
 
             DockPreview(model: model)
         }
@@ -270,29 +255,105 @@ struct DashboardCanvas: View {
     }
 }
 
+struct DashboardPreviewLayout: View {
+    @Bindable var model: GlassDeckStudioModel
+
+    var body: some View {
+        GeometryReader { proxy in
+            let grid = model.dashboard.grid
+            let columns = max(1, grid.columns)
+            let gap = CGFloat(max(6, grid.gap))
+            let rowHeight = CGFloat(max(56, grid.rowHeight))
+            let availableWidth = max(1, proxy.size.width)
+            let cellWidth = max(42, (availableWidth - gap * CGFloat(columns - 1)) / CGFloat(columns))
+
+            ZStack(alignment: .topLeading) {
+                CanvasGridBackground(columns: columns, rows: model.previewRows, gap: gap, cellWidth: cellWidth, rowHeight: rowHeight)
+
+                ForEach(model.dashboard.cards) { card in
+                    let x = min(max(0, card.x), max(0, columns - 1))
+                    let widthUnits = min(max(1, card.w), max(1, columns - x))
+                    let heightUnits = max(1, card.h)
+                    let width = cellWidth * CGFloat(widthUnits) + gap * CGFloat(widthUnits - 1)
+                    let height = rowHeight * CGFloat(heightUnits) + gap * CGFloat(heightUnits - 1)
+                    let originX = CGFloat(x) * (cellWidth + gap)
+                    let originY = CGFloat(max(0, card.y)) * (rowHeight + gap)
+
+                    Button {
+                        model.selectedCardID = card.id
+                    } label: {
+                        CanvasCard(card: card, value: model.previewValue(for: card))
+                            .frame(width: width, height: height)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 22)
+                                    .stroke(model.selectedCardID == card.id ? Color.accentColor : .clear, lineWidth: 2)
+                            )
+                    }
+                    .buttonStyle(.plain)
+                    .position(x: originX + width / 2, y: originY + height / 2)
+                }
+            }
+        }
+        .frame(height: model.previewCanvasHeight)
+        .padding(12)
+        .background(Color.black.opacity(0.18))
+        .clipShape(RoundedRectangle(cornerRadius: 26))
+        .overlay(
+            RoundedRectangle(cornerRadius: 26)
+                .stroke(.white.opacity(0.08), lineWidth: 1)
+        )
+    }
+}
+
+struct CanvasGridBackground: View {
+    let columns: Int
+    let rows: Int
+    let gap: CGFloat
+    let cellWidth: CGFloat
+    let rowHeight: CGFloat
+
+    var body: some View {
+        VStack(spacing: gap) {
+            ForEach(0..<rows, id: \.self) { _ in
+                HStack(spacing: gap) {
+                    ForEach(0..<columns, id: \.self) { _ in
+                        RoundedRectangle(cornerRadius: 14)
+                            .fill(Color.white.opacity(0.025))
+                            .frame(width: cellWidth, height: rowHeight)
+                    }
+                }
+            }
+        }
+    }
+}
+
 struct CanvasCard: View {
     let card: DashboardCard
     let value: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Text(card.type.displayName)
+                Label(card.type.displayName, systemImage: card.type.symbol)
                     .font(.caption2.weight(.bold))
                     .foregroundStyle(.secondary)
+                    .labelStyle(.titleAndIcon)
                     .textCase(.uppercase)
                 Spacer()
-                Image(systemName: card.type.symbol)
-                    .foregroundStyle(.secondary)
+                if card.type == .button {
+                    Image(systemName: "arrow.up.right.circle.fill")
+                        .foregroundStyle(.blue)
+                }
             }
 
             Text(card.title)
-                .font(.headline)
+                .font(.system(size: 18, weight: .semibold))
                 .lineLimit(1)
 
             Text(value)
-                .font(.system(size: 28, weight: .bold))
+                .font(.system(size: card.type == .button ? 22 : 34, weight: .bold))
                 .lineLimit(1)
+                .minimumScaleFactor(0.72)
 
             Spacer()
 
@@ -301,11 +362,11 @@ struct CanvasCard: View {
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
         }
-        .padding(14)
+        .padding(16)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
         .background(
             LinearGradient(
-                colors: [Color.white.opacity(0.14), Color.white.opacity(0.055)],
+                colors: [Color.white.opacity(0.16), Color.white.opacity(0.06)],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
@@ -323,8 +384,13 @@ struct DockPreview: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            Text("Barre du bas")
-                .font(.headline)
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Barre du bas")
+                    .font(.headline)
+                Text("Actions rapides envoyées à la Surface")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
             Spacer()
             ForEach(model.dashboard.dockActions) { item in
                 VStack(spacing: 6) {
@@ -338,9 +404,19 @@ struct DockPreview: View {
                 }
             }
         }
-        .padding(14)
-        .background(Color.black.opacity(0.22))
-        .clipShape(RoundedRectangle(cornerRadius: 24))
+        .padding(16)
+        .background(
+            LinearGradient(
+                colors: [Color.black.opacity(0.34), Color.black.opacity(0.18)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 28))
+        .overlay(
+            RoundedRectangle(cornerRadius: 28)
+                .stroke(.white.opacity(0.08), lineWidth: 1)
+        )
     }
 }
 
@@ -353,7 +429,7 @@ struct InspectorPanel: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: 16) {
                 SectionHeader(title: "Dashboard", subtitle: "Nom, grille et publication")
 
                 GlassPanel {
@@ -374,9 +450,14 @@ struct InspectorPanel: View {
                 SectionHeader(title: "Barre horizontale du bas", subtitle: "Boutons visibles sur la Surface")
                 DockEditor(model: model)
 
-                SectionHeader(title: "Daemon", subtitle: model.lastMessage)
+                SectionHeader(title: "Daemon", subtitle: model.isOnline ? "Service local prêt" : "Service local indisponible")
                 GlassPanel {
-                    HStack {
+                    Text(model.lastMessage)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    HStack(spacing: 10) {
                         Button("Start") { Task { await model.controlService(.start) } }
                         Button("Restart") { Task { await model.controlService(.restart) } }
                         Button("Stop") { Task { await model.controlService(.stop) } }
@@ -386,7 +467,7 @@ struct InspectorPanel: View {
             }
             .padding(18)
         }
-        .frame(width: 360)
+        .frame(width: 420)
         .background(.ultraThinMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 28))
         .overlay(
@@ -424,12 +505,12 @@ struct CardEditor: View {
                 }
             }
 
-            Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 10) {
-                GridRow {
+            VStack(spacing: 10) {
+                HStack {
                     Stepper("X \(card.x)", value: $card.x, in: 0...11)
                     Stepper("Y \(card.y)", value: $card.y, in: 0...8)
                 }
-                GridRow {
+                HStack {
                     Stepper("W \(card.w)", value: $card.w, in: 1...12)
                     Stepper("H \(card.h)", value: $card.h, in: 1...4)
                 }
@@ -457,13 +538,15 @@ struct DockEditor: View {
     var body: some View {
         GlassPanel {
             ForEach($model.dashboard.dockActions) { $item in
-                HStack {
+                HStack(spacing: 10) {
                     TextField("Titre", text: $item.title)
+                        .frame(minWidth: 120)
                     Picker("Action", selection: $item.action) {
                         ForEach(model.actions) { action in
                             Text(action.label).tag(action.id)
                         }
                     }
+                    .frame(maxWidth: .infinity)
                     .labelsHidden()
                     Button {
                         model.deleteDockAction(item.id)
@@ -566,6 +649,16 @@ final class GlassDeckStudioModel {
     private let baseURL = URL(string: "http://127.0.0.1:7878")!
     private let service = MacDaemonService()
 
+    var previewRows: Int {
+        max(4, (dashboard.cards.map { $0.y + $0.h }.max() ?? 4))
+    }
+
+    var previewCanvasHeight: CGFloat {
+        let rowHeight = CGFloat(max(56, dashboard.grid.rowHeight))
+        let gap = CGFloat(max(6, dashboard.grid.gap))
+        return max(360, CGFloat(previewRows) * rowHeight + CGFloat(max(0, previewRows - 1)) * gap)
+    }
+
     func refreshAll() async {
         await refreshStatus()
         await fetchDashboard()
@@ -591,14 +684,24 @@ final class GlassDeckStudioModel {
 
     func fetchDashboard() async {
         do {
-            let (data, _) = try await URLSession.shared.data(from: baseURL.appending(path: "dashboards/main"))
+            let (data, response) = try await URLSession.shared.data(from: baseURL.appending(path: "dashboards/main"))
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw StudioError.invalidResponse
+            }
+            guard httpResponse.statusCode == 200 else {
+                let body = String(data: data, encoding: .utf8)?
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                throw StudioError.dashboardEndpointUnavailable(body?.isEmpty == false ? body! : "HTTP \(httpResponse.statusCode)")
+            }
             let decoder = JSONDecoder()
             decoder.keyDecodingStrategy = .convertFromSnakeCase
             dashboard = try decoder.decode(DashboardDefinition.self, from: data)
             selectedCardID = dashboard.cards.first?.id
             lastMessage = "Dashboard chargé depuis le daemon."
+        } catch let error as StudioError {
+            lastMessage = error.localizedDescription
         } catch {
-            lastMessage = "Dashboard local: \(error.localizedDescription)"
+            lastMessage = "Dashboard local conservé: \(error.localizedDescription)"
         }
     }
 
@@ -609,12 +712,19 @@ final class GlassDeckStudioModel {
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
             let encoder = JSONEncoder()
             request.httpBody = try encoder.encode(dashboard)
-            let (_, response) = try await URLSession.shared.data(for: request)
-            guard (response as? HTTPURLResponse)?.statusCode == 200 else {
-                throw NSError(domain: "GlassDeckStudio", code: 1, userInfo: [NSLocalizedDescriptionKey: "Publication refusée par le daemon."])
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw StudioError.invalidResponse
+            }
+            guard httpResponse.statusCode == 200 else {
+                let body = String(data: data, encoding: .utf8)?
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                throw StudioError.dashboardEndpointUnavailable(body?.isEmpty == false ? body! : "HTTP \(httpResponse.statusCode)")
             }
             isOnline = true
             lastMessage = "Dashboard publié sur GlassDeck."
+        } catch let error as StudioError {
+            lastMessage = error.localizedDescription
         } catch {
             isOnline = false
             lastMessage = "Publication impossible: \(error.localizedDescription)"
@@ -871,4 +981,18 @@ enum ActionKind: String, Codable {
     case system
     case application
     case script
+}
+
+enum StudioError: LocalizedError {
+    case invalidResponse
+    case dashboardEndpointUnavailable(String)
+
+    var errorDescription: String? {
+        switch self {
+        case .invalidResponse:
+            "Réponse daemon invalide."
+        case .dashboardEndpointUnavailable(let detail):
+            "Daemon à mettre à jour: redémarre le daemon GlassDeck. Détail: \(detail)"
+        }
+    }
 }
