@@ -157,10 +157,11 @@ Run the Mac configuration app:
 ./scripts/run-mac-app.sh
 ```
 
-Equivalent Swift command from the repository root:
+This packages and opens `dist/GlassDeck.app`, so the terminal returns
+immediately. For attached foreground logs only:
 
 ```sh
-swift run GlassDeckMacApp
+./scripts/run-mac-app.sh --foreground
 ```
 
 Run the Mac daemon:
