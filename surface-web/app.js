@@ -188,14 +188,20 @@ function renderDashboard(dashboard = state.dashboard) {
       item.type = "button";
       item.dataset.dashboardAction = card.action || "";
       value.textContent = "Action";
+    } else if (card.type === "title") {
+      value.textContent = card.title;
     } else {
       value.textContent = readDashboardValue(card.entity);
     }
 
     eyebrow.className = "dashboard-card-eyebrow";
-    eyebrow.textContent = card.type === "button" ? "Commande" : "Entité";
-    title.textContent = card.title || "Carte";
-    value.className = "dashboard-card-value";
+    if (card.type === "title") {
+        eyebrow.textContent = "Application Active";
+    } else {
+        eyebrow.textContent = card.type === "button" ? "Commande" : "Entité";
+    }
+    title.textContent = card.type === "title" ? "" : (card.title || "Carte");
+    value.className = card.type === "title" ? "dashboard-card-value title-value" : "dashboard-card-value";
     subtitle.textContent = card.subtitle || card.entity || card.action || "";
 
     item.append(eyebrow, title, value, subtitle);

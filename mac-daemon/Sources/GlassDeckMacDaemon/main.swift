@@ -1,6 +1,7 @@
 import Foundation
 import Darwin
 import Network
+import AppKit
 
 let config = DaemonConfig.fromEnvironment()
 let daemon = MacDaemon(config: config)
@@ -291,6 +292,42 @@ struct ActionRegistry {
                 descriptor: ActionDescriptor(id: "open-applications", label: "Ouvrir Applications", kind: .application),
                 handler: .runCommand(program: "open", arguments: ["/Applications"])
             ),
+            Action(
+                descriptor: ActionDescriptor(id: "open-app", label: "Ouvrir Application Spécifique", kind: .application),
+                handler: .openApp
+            ),
+            Action(
+                descriptor: ActionDescriptor(id: "lock-screen", label: "Verrouiller l'écran", kind: .system),
+                handler: .runCommand(program: "pmset", arguments: ["displaysleepnow"])
+            ),
+            Action(
+                descriptor: ActionDescriptor(id: "play-pause-music", label: "Musique: Play/Pause", kind: .system),
+                handler: .runCommand(program: "osascript", arguments: ["-e", "tell application \"Music\" to playpause"])
+            ),
+            Action(
+                descriptor: ActionDescriptor(id: "next-track", label: "Musique: Piste suivante", kind: .system),
+                handler: .runCommand(program: "osascript", arguments: ["-e", "tell application \"Music\" to next track"])
+            ),
+            Action(
+                descriptor: ActionDescriptor(id: "toggle-mute", label: "Mute / Unmute", kind: .system),
+                handler: .runCommand(program: "osascript", arguments: ["-e", "set volume output muted not (output muted of (get volume settings))"])
+            ),
+            Action(
+                descriptor: ActionDescriptor(id: "toggle-dark-mode", label: "Mode Sombre", kind: .system),
+                handler: .runCommand(program: "osascript", arguments: ["-e", "tell application \"System Events\" to tell appearance preferences to set dark mode to not dark mode"])
+            ),
+            Action(
+                descriptor: ActionDescriptor(id: "safari-new-tab", label: "Safari: Nouvel onglet", kind: .system),
+                handler: .runCommand(program: "osascript", arguments: ["-e", "tell application \"Safari\" to make new document"])
+            ),
+            Action(
+                descriptor: ActionDescriptor(id: "spotify-play-pause", label: "Spotify: Play/Pause", kind: .system),
+                handler: .runCommand(program: "osascript", arguments: ["-e", "tell application \"Spotify\" to playpause"])
+            ),
+            Action(
+                descriptor: ActionDescriptor(id: "spotify-next-track", label: "Spotify: Piste suivante", kind: .system),
+                handler: .runCommand(program: "osascript", arguments: ["-e", "tell application \"Spotify\" to next track"])
+            ),
         ]
 
         actions = Dictionary(uniqueKeysWithValues: registeredActions.map { ($0.descriptor.id, $0) })
@@ -329,6 +366,7 @@ enum ActionHandler {
     case ping
     case status
     case openURL
+    case openApp
     case runCommand(program: String, arguments: [String])
 
     func execute(payload: JSONValue, context: ActionContext) -> ActionOutput {
@@ -337,6 +375,13 @@ enum ActionHandler {
             return .success("pong")
         case .status:
             return .success("\(context.actionCount) action(s), \(context.connectedClients) client(s)")
+        case .openApp:
+            guard case .object(let object) = payload,
+                  case .string(let appName)? = object["app"]
+            else {
+                return .failure("Payload attendu: {\"app\":\"NomDeLApp\"}")
+            }
+            return run(program: "open", arguments: ["-a", appName])
         case .openURL:
             guard case .object(let object) = payload,
                   case .string(let url)? = object["url"]
@@ -397,7 +442,158 @@ final class DashboardStore: @unchecked Sendable {
     }
 
     func mainDashboard() -> DashboardDefinition {
-        dashboard
+        let activeApp = NSWorkspace.shared.frontmostApplication?.localizedName ?? "Finder"
+        
+        var currentDashboard = dashboard
+        // Insert title card
+        currentDashboard.cards.insert(DashboardCard(
+            id: "title-card",
+            type: .title,
+            title: activeApp,
+            subtitle: "App ouverte",
+            entity: nil,
+            action: nil,
+            x: 0,
+            y: 0,
+            w: 12,
+            h: 1
+        ), at: 0)
+        
+        // Shift existing cards down by 1 row
+        for i in 1..<currentDashboard.cards.count {
+            currentDashboard.cards[i].y += 1
+        }
+        
+        // Add specific cards based on app
+        if activeApp.lowercased() == "docker" || activeApp.lowercased() == "orbstack" || activeApp.lowercased() == "warp" {
+            currentDashboard.cards.append(DashboardCard(
+                id: "docker-status",
+                type: .status,
+                title: "Docker",
+                subtitle: "Containers en cours",
+                entity: "docker.status",
+                action: nil,
+                x: 0,
+                y: 3,
+                w: 6,
+                h: 2
+            ))
+            currentDashboard.cards.append(DashboardCard(
+                id: "k8s-status",
+                type: .status,
+                title: "Kubernetes",
+                subtitle: "Cluster actif",
+                entity: "kubernetes.status",
+                action: nil,
+                x: 6,
+                y: 3,
+                w: 6,
+                h: 2
+            ))
+        } else if activeApp.lowercased() == "music" {
+            currentDashboard.cards.append(DashboardCard(
+                id: "music-play-pause",
+                type: .button,
+                title: "Musique",
+                subtitle: "Play / Pause",
+                entity: nil,
+                action: "play-pause-music",
+                x: 0,
+                y: 3,
+                w: 6,
+                h: 2
+            ))
+            currentDashboard.cards.append(DashboardCard(
+                id: "music-next",
+                type: .button,
+                title: "Musique",
+                subtitle: "Suivant",
+                entity: nil,
+                action: "next-track",
+                x: 6,
+                y: 3,
+                w: 6,
+                h: 2
+            ))
+        } else if activeApp.lowercased() == "spotify" {
+            currentDashboard.cards.append(DashboardCard(
+                id: "spotify-play-pause",
+                type: .button,
+                title: "Spotify",
+                subtitle: "Play / Pause",
+                entity: nil,
+                action: "spotify-play-pause",
+                x: 0,
+                y: 3,
+                w: 6,
+                h: 2
+            ))
+            currentDashboard.cards.append(DashboardCard(
+                id: "spotify-next",
+                type: .button,
+                title: "Spotify",
+                subtitle: "Suivant",
+                entity: nil,
+                action: "spotify-next-track",
+                x: 6,
+                y: 3,
+                w: 6,
+                h: 2
+            ))
+        } else if activeApp.lowercased() == "safari" {
+            currentDashboard.cards.append(DashboardCard(
+                id: "safari-new-tab",
+                type: .button,
+                title: "Safari",
+                subtitle: "Nouvel onglet",
+                entity: nil,
+                action: "safari-new-tab",
+                x: 0,
+                y: 3,
+                w: 12,
+                h: 2
+            ))
+        }
+
+        let maxY = currentDashboard.cards.map { $0.y + $0.h }.max() ?? 3
+        currentDashboard.cards.append(DashboardCard(
+            id: "system-lock",
+            type: .button,
+            title: "Écran",
+            subtitle: "Verrouiller",
+            entity: nil,
+            action: "lock-screen",
+            x: 0,
+            y: maxY,
+            w: 4,
+            h: 2
+        ))
+        currentDashboard.cards.append(DashboardCard(
+            id: "system-mute",
+            type: .button,
+            title: "Volume",
+            subtitle: "Mute / Unmute",
+            entity: nil,
+            action: "toggle-mute",
+            x: 4,
+            y: maxY,
+            w: 4,
+            h: 2
+        ))
+        currentDashboard.cards.append(DashboardCard(
+            id: "system-dark-mode",
+            type: .button,
+            title: "Thème",
+            subtitle: "Clair / Sombre",
+            entity: nil,
+            action: "toggle-dark-mode",
+            x: 8,
+            y: maxY,
+            w: 4,
+            h: 2
+        ))
+
+        return currentDashboard
     }
 
     func saveMainDashboard(_ dashboard: DashboardDefinition) throws {
@@ -572,16 +768,16 @@ struct DashboardGrid: Codable {
 }
 
 struct DashboardCard: Codable {
-    let id: String
-    let type: DashboardCardType
-    let title: String
-    let subtitle: String?
-    let entity: String?
-    let action: String?
-    let x: Int
-    let y: Int
-    let w: Int
-    let h: Int
+    var id: String
+    var type: DashboardCardType
+    var title: String
+    var subtitle: String?
+    var entity: String?
+    var action: String?
+    var x: Int
+    var y: Int
+    var w: Int
+    var h: Int
 }
 
 struct DashboardDockAction: Codable {
@@ -594,6 +790,7 @@ enum DashboardCardType: String, Codable {
     case metric
     case button
     case status
+    case title
 }
 
 struct ActionOutput {
