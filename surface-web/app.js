@@ -231,6 +231,7 @@ function renderControlCenterCards(dashboard = state.dashboard) {
     if (card.type === "button") {
       item.type = "button";
       item.dataset.dashboardAction = card.action || "";
+      item.setAttribute("aria-pressed", "false");
     }
 
     item.append(title, value, subtitle);
@@ -871,6 +872,7 @@ elements.controlCenterCards?.addEventListener("click", (event) => {
   const button = event.target.closest("[data-dashboard-action]");
   const actionId = button?.dataset.dashboardAction;
   if (actionId) {
+    event.preventDefault();
     executeAction(actionId);
   }
 });

@@ -37,28 +37,31 @@ struct StudioView: View {
     @Bindable var model: GlassDeckStudioModel
 
     var body: some View {
-        NavigationSplitView {
+        HStack(spacing: 0) {
             StudioSidebar(model: model)
-        } detail: {
+
             ZStack {
                 StudioBackground()
 
-                VStack(spacing: 18) {
+                VStack(spacing: 0) {
                     StudioHeader(model: model)
 
-                    HStack(alignment: .top, spacing: 18) {
+                    HStack(alignment: .top, spacing: 0) {
                         if model.activeSurface == .dashboard {
                             DashboardCanvas(model: model)
                         } else {
                             ControlCenterCanvas(model: model)
                         }
+
+                        Divider().opacity(0.5)
+
                         InspectorPanel(model: model)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
-                .padding(22)
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .task {
             await model.refreshAll()
         }
@@ -71,10 +74,6 @@ struct StudioSidebar: View {
     var body: some View {
         VStack(spacing: 16) {
             LogoBadge()
-
-            Capsule()
-                .fill(.white.opacity(0.14))
-                .frame(width: 30, height: 3)
 
             SurfaceRailButton(
                 symbol: "rectangle.grid.3x2",
@@ -104,11 +103,12 @@ struct StudioSidebar: View {
                     .foregroundStyle(.secondary)
             }
         }
-        .padding(.vertical, 22)
-        .frame(minWidth: 72)
+        .padding(.vertical, 20)
+        .padding(.horizontal, 14)
+        .frame(width: 96)
         .background(
             LinearGradient(
-                colors: [Color.white.opacity(0.10), Color.white.opacity(0.035)],
+                colors: [Color.white.opacity(0.11), Color.white.opacity(0.045), Color.black.opacity(0.12)],
                 startPoint: .top,
                 endPoint: .bottom
             )
@@ -129,15 +129,16 @@ struct SurfaceRailButton: View {
 
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 6) {
+            VStack(spacing: 7) {
                 Image(systemName: symbol)
                     .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(active ? Color.white : Color.secondary)
                     .frame(width: 44, height: 40)
-                    .background(active ? Color.accentColor.opacity(0.24) : Color.white.opacity(0.055))
+                    .background(active ? Color.accentColor.opacity(0.32) : Color.white.opacity(0.055))
                     .clipShape(RoundedRectangle(cornerRadius: 15))
                     .overlay(
                         RoundedRectangle(cornerRadius: 15)
-                            .stroke(active ? Color.accentColor.opacity(0.7) : .white.opacity(0.06), lineWidth: 1)
+                            .stroke(active ? Color.accentColor.opacity(0.8) : .white.opacity(0.06), lineWidth: 1)
                     )
                 Text(title)
                     .font(.caption2.weight(.semibold))
@@ -145,6 +146,10 @@ struct SurfaceRailButton: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
             }
+            .padding(.vertical, 8)
+            .frame(width: 64)
+            .background(active ? Color.white.opacity(0.08) : Color.clear)
+            .clipShape(RoundedRectangle(cornerRadius: 18))
         }
         .buttonStyle(.plain)
         .help(title)
@@ -189,15 +194,10 @@ struct StudioHeader: View {
     @Bindable var model: GlassDeckStudioModel
 
     var body: some View {
-        HStack(spacing: 16) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("GlassDeck Studio")
-                    .font(.caption.weight(.bold))
-                    .foregroundStyle(.secondary)
-                    .textCase(.uppercase)
-                Text(model.activeSurface == .dashboard ? "Canvas" : "Control Center")
-                    .font(.system(size: 32, weight: .bold))
-                    .lineLimit(1)
+        HStack {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(model.activeSurface == .dashboard ? "Dashboard" : "Control Center")
+                    .font(.system(size: 28, weight: .bold))
                 Text(model.lastMessage)
                     .font(.callout)
                     .foregroundStyle(.secondary)
@@ -205,10 +205,6 @@ struct StudioHeader: View {
             }
 
             Spacer()
-
-            StatusTile(title: "Daemon", value: model.isOnline ? "Connecté" : "Hors ligne", color: model.isOnline ? .green : .orange)
-            StatusTile(title: "Surface", value: model.connectedClients > 0 ? "\(model.connectedClients) client" : "Aucune", color: .blue)
-            StatusTile(title: "Cartes", value: "\(model.dashboard.cards.count)", color: .purple)
 
             Button {
                 Task { await model.refreshAll() }
@@ -225,13 +221,8 @@ struct StudioHeader: View {
             .buttonStyle(.borderedProminent)
             .controlSize(.large)
         }
-        .padding(18)
-        .background(.ultraThinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 26))
-        .overlay(
-            RoundedRectangle(cornerRadius: 26)
-                .stroke(.white.opacity(0.12), lineWidth: 1)
-        )
+        .padding(.horizontal, 24)
+        .padding(.vertical, 16)
     }
 }
 
@@ -285,14 +276,8 @@ struct DashboardCanvas: View {
 
             DockPreview(model: model)
         }
-        .padding(18)
+        .padding(24)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .background(.ultraThinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 28))
-        .overlay(
-            RoundedRectangle(cornerRadius: 28)
-                .stroke(.white.opacity(0.1), lineWidth: 1)
-        )
     }
 }
 
@@ -551,71 +536,69 @@ struct ControlCenterCanvas: View {
     @Bindable var model: GlassDeckStudioModel
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Centre de contrôle")
-                        .font(.title2.bold())
-                    Text("Aperçu du panneau latéral affiché sur la Surface")
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-                }
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Centre de contrôle")
+                            .font(.title2.bold())
+                        Text("Aperçu du panneau latéral affiché sur la Surface")
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                    }
 
-                Spacer()
-
-                Button {
-                    model.addControlCenterCard()
-                } label: {
-                    Label("Ajouter une carte", systemImage: "plus")
-                }
-                .buttonStyle(.borderedProminent)
-            }
-
-            HStack(alignment: .top, spacing: 18) {
-                VStack(spacing: 12) {
-                    ControlCenterPreviewHeader(model: model)
-                    ControlCenterPreviewGrid(model: model)
-                    ControlCenterPreviewSliders()
-                }
-                .padding(18)
-                .frame(maxWidth: 460, alignment: .top)
-                .background(
-                    LinearGradient(
-                        colors: [Color.white.opacity(0.14), Color.white.opacity(0.055)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .clipShape(RoundedRectangle(cornerRadius: 30))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 30)
-                        .stroke(.white.opacity(0.12), lineWidth: 1)
-                )
-
-                VStack(alignment: .leading, spacing: 10) {
-                    Label("Synchronisation automatique", systemImage: "arrow.triangle.2.circlepath")
-                        .font(.headline)
-                    Text("Les cartes configurées ici sont incluses dans le dashboard publié. La Surface les recharge automatiquement et garde la dernière version valide si le Mac disparaît quelques secondes.")
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
                     Spacer()
+
+                    Button {
+                        model.addControlCenterCard()
+                    } label: {
+                        Label("Ajouter une carte", systemImage: "plus")
+                    }
+                    .buttonStyle(.borderedProminent)
                 }
-                .padding(18)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                .background(Color.black.opacity(0.16))
-                .clipShape(RoundedRectangle(cornerRadius: 26))
+
+                HStack(alignment: .top, spacing: 18) {
+                    VStack(spacing: 12) {
+                        ControlCenterPreviewHeader(model: model)
+                        ControlCenterPreviewGrid(model: model)
+                        ControlCenterPreviewSliders()
+                    }
+                    .padding(18)
+                    .frame(maxWidth: 460, alignment: .top)
+                    .background(
+                        LinearGradient(
+                            colors: [Color.white.opacity(0.14), Color.white.opacity(0.055)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 30))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 30)
+                            .stroke(.white.opacity(0.12), lineWidth: 1)
+                    )
+
+                    VStack(alignment: .leading, spacing: 12) {
+                        Label("Synchronisation automatique", systemImage: "arrow.triangle.2.circlepath")
+                            .font(.headline)
+                        Text("Les cartes configurées ici sont incluses dans le dashboard publié. La Surface les recharge automatiquement et garde la dernière version valide si le Mac disparaît quelques secondes.")
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+
+                        ControlCenterCardListEditor(model: model)
+                    }
+                    .padding(18)
+                    .frame(maxWidth: .infinity, alignment: .topLeading)
+                    .background(Color.black.opacity(0.16))
+                    .clipShape(RoundedRectangle(cornerRadius: 26))
+                }
+                .frame(maxHeight: .infinity, alignment: .top)
             }
-            .frame(maxHeight: .infinity, alignment: .top)
+            .padding(24)
         }
-        .padding(18)
+        .scrollIndicators(.hidden)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .background(.ultraThinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 28))
-        .overlay(
-            RoundedRectangle(cornerRadius: 28)
-                .stroke(.white.opacity(0.1), lineWidth: 1)
-        )
     }
 }
 
@@ -792,15 +775,10 @@ struct InspectorPanel: View {
                     .buttonStyle(.bordered)
                 }
             }
-            .padding(18)
+            .padding(24)
         }
-        .frame(width: 420)
-        .background(.ultraThinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 28))
-        .overlay(
-            RoundedRectangle(cornerRadius: 28)
-                .stroke(.white.opacity(0.1), lineWidth: 1)
-        )
+        .frame(width: 320)
+        .background(Color.white.opacity(0.015))
     }
 }
 
@@ -942,13 +920,17 @@ struct ControlCenterCardListEditor: View {
                 Button {
                     model.selectedControlCenterCardID = card.id
                 } label: {
-                    HStack(spacing: 10) {
+                    HStack(spacing: 12) {
                         Image(systemName: card.type.symbol)
-                            .frame(width: 26)
+                            .font(.system(size: 15, weight: .semibold))
+                            .frame(width: 30, height: 30)
+                            .background(Color.white.opacity(0.08))
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
                             .foregroundStyle(.secondary)
                         VStack(alignment: .leading, spacing: 2) {
                             Text(card.title)
                                 .font(.callout.weight(.semibold))
+                                .lineLimit(1)
                             Text(card.subtitle ?? card.entity ?? card.action ?? "")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
@@ -959,10 +941,21 @@ struct ControlCenterCardListEditor: View {
                             .font(.caption.weight(.bold))
                             .foregroundStyle(.tertiary)
                     }
-                    .padding(.vertical, 5)
+                    .padding(.vertical, 6)
+                    .padding(.horizontal, 10)
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .padding(.horizontal, -2)
+                .padding(.vertical, 2)
+                .background(
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(model.selectedControlCenterCardID == card.id ? Color.accentColor.opacity(0.16) : Color.white.opacity(0.04))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14)
+                        .stroke(model.selectedControlCenterCardID == card.id ? Color.accentColor.opacity(0.55) : .white.opacity(0.08), lineWidth: 1)
+                )
             }
 
             Button {
@@ -1049,7 +1042,11 @@ struct StudioBackground: View {
 final class GlassDeckStudioModel {
     var activeSurface: StudioSurface = .dashboard
     var actions: [ActionDescriptor] = ActionDescriptor.fallback
-    var dashboard = DashboardDefinition.defaultMain
+    var dashboard = DashboardDefinition.defaultMain {
+        didSet {
+            saveLocal()
+        }
+    }
     var selectedCardID: String? = DashboardDefinition.defaultMain.cards.first?.id
     var selectedControlCenterCardID: String? = DashboardDefinition.defaultMain.controlCenterCards.first?.id
     var connectedClients = 0
@@ -1059,6 +1056,26 @@ final class GlassDeckStudioModel {
 
     private let baseURL = URL(string: "http://127.0.0.1:7878")!
     private let service = MacDaemonService()
+
+    init() {
+        if let data = UserDefaults.standard.data(forKey: "saved_dashboard") {
+            let decoder = JSONDecoder()
+            decoder.keyDecodingStrategy = .convertFromSnakeCase
+            if let saved = try? decoder.decode(DashboardDefinition.self, from: data) {
+                self.dashboard = saved
+                self.selectedCardID = saved.cards.first?.id
+                self.selectedControlCenterCardID = saved.controlCenterCards.first?.id
+            }
+        }
+    }
+
+    private func saveLocal() {
+        let encoder = JSONEncoder()
+        encoder.keyEncodingStrategy = .convertToSnakeCase
+        if let data = try? encoder.encode(dashboard) {
+            UserDefaults.standard.set(data, forKey: "saved_dashboard")
+        }
+    }
 
     var previewRows: Int {
         max(4, (dashboard.cards.map { $0.y + $0.h }.max() ?? 4))
@@ -1070,9 +1087,19 @@ final class GlassDeckStudioModel {
         return max(360, CGFloat(previewRows) * rowHeight + CGFloat(max(0, previewRows - 1)) * gap)
     }
 
+    func syncSelections() {
+        if !dashboard.cards.contains(where: { $0.id == selectedCardID }) {
+            selectedCardID = dashboard.cards.first?.id
+        }
+        if !dashboard.controlCenterCards.contains(where: { $0.id == selectedControlCenterCardID }) {
+            selectedControlCenterCardID = dashboard.controlCenterCards.first?.id
+        }
+    }
+
     func refreshAll() async {
         await refreshStatus()
         await fetchDashboard()
+        syncSelections()
     }
 
     func refreshStatus() async {
@@ -1109,6 +1136,7 @@ final class GlassDeckStudioModel {
             dashboard = try decoder.decode(DashboardDefinition.self, from: data)
             selectedCardID = dashboard.cards.first?.id
             selectedControlCenterCardID = dashboard.controlCenterCards.first?.id
+            syncSelections()
             lastMessage = "Dashboard chargé depuis le daemon."
         } catch let error as StudioError {
             lastMessage = error.localizedDescription
@@ -1161,6 +1189,7 @@ final class GlassDeckStudioModel {
         )
         dashboard.cards.append(card)
         selectedCardID = card.id
+        syncSelections()
     }
 
     func moveCard(id: String, translation: CGSize, cellWidth: CGFloat, rowHeight: CGFloat, gap: CGFloat) {
@@ -1212,6 +1241,7 @@ final class GlassDeckStudioModel {
         guard let selectedCardID else { return }
         dashboard.cards.removeAll { $0.id == selectedCardID }
         self.selectedCardID = dashboard.cards.first?.id
+        syncSelections()
     }
 
     func addDockAction() {
@@ -1239,6 +1269,7 @@ final class GlassDeckStudioModel {
         )
         dashboard.controlCenterCards.append(card)
         selectedControlCenterCardID = card.id
+        syncSelections()
     }
 
     func deleteControlCenterCard(_ id: String) {
@@ -1246,6 +1277,7 @@ final class GlassDeckStudioModel {
         if selectedControlCenterCardID == id {
             selectedControlCenterCardID = dashboard.controlCenterCards.first?.id
         }
+        syncSelections()
     }
 
     func previewValue(for card: DashboardCard) -> String {
@@ -1256,12 +1288,12 @@ final class GlassDeckStudioModel {
         switch card.entity {
         case "mac.daemon":
             return isOnline ? "Connecté" : "Hors ligne"
-        case "mac.cpu_percent":
-            return "--%"
-        case "mac.memory_percent":
+        case "mac.cpu_percent", "mac.memory_percent":
             return "--%"
         case "mac.temperature_celsius":
             return "--°"
+        case "docker.status", "kubernetes.status":
+            return "Actif"
         default:
             return "--"
         }
@@ -1342,6 +1374,10 @@ struct DashboardDefinition: Codable {
             DashboardCard(id: "mac-memory", type: .metric, title: "Mémoire", subtitle: "RAM utilisée", entity: "mac.memory_percent", action: nil, x: 6, y: 0, w: 3, h: 2),
             DashboardCard(id: "mac-temperature", type: .metric, title: "Température", subtitle: "Capteur Mac", entity: "mac.temperature_celsius", action: nil, x: 9, y: 0, w: 3, h: 2),
             DashboardCard(id: "open-apps", type: .button, title: "Applications", subtitle: "Ouvrir sur le Mac", entity: nil, action: "open-applications", x: 0, y: 2, w: 3, h: 2),
+            DashboardCard(id: "docker-status", type: .status, title: "Docker", subtitle: "Containers", entity: "docker.status", action: nil, x: 3, y: 2, w: 3, h: 2),
+            DashboardCard(id: "k8s-status", type: .status, title: "Kubernetes", subtitle: "Cluster", entity: "kubernetes.status", action: nil, x: 6, y: 2, w: 3, h: 2),
+            DashboardCard(id: "system-volume", type: .button, title: "Volume", subtitle: "Mute / Unmute", entity: nil, action: "toggle-mute", x: 9, y: 2, w: 3, h: 2),
+            DashboardCard(id: "system-lock", type: .button, title: "Écran", subtitle: "Verrouiller", entity: nil, action: "lock-screen", x: 0, y: 4, w: 3, h: 2),
         ],
         dockActions: defaultDockActions,
         controlCenterCards: defaultControlCenterCards
@@ -1439,6 +1475,8 @@ enum DashboardEntity: String, CaseIterable, Identifiable {
     case cpu = "mac.cpu_percent"
     case memory = "mac.memory_percent"
     case temperature = "mac.temperature_celsius"
+    case docker = "docker.status"
+    case kubernetes = "kubernetes.status"
 
     var id: String { rawValue }
 
@@ -1448,6 +1486,8 @@ enum DashboardEntity: String, CaseIterable, Identifiable {
         case .cpu: "CPU"
         case .memory: "Mémoire"
         case .temperature: "Température"
+        case .docker: "Docker"
+        case .kubernetes: "Kubernetes"
         }
     }
 }
