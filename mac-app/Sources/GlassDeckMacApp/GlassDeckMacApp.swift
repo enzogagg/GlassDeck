@@ -1062,9 +1062,13 @@ final class GlassDeckStudioModel {
             let decoder = JSONDecoder()
             decoder.keyDecodingStrategy = .convertFromSnakeCase
             if let saved = try? decoder.decode(DashboardDefinition.self, from: data) {
-                self.dashboard = saved
-                self.selectedCardID = saved.cards.first?.id
-                self.selectedControlCenterCardID = saved.controlCenterCards.first?.id
+                let cleaned = saved.withoutUnsupportedDefaultCards()
+                self.dashboard = cleaned
+                self.selectedCardID = cleaned.cards.first?.id
+                self.selectedControlCenterCardID = cleaned.controlCenterCards.first?.id
+                if cleaned.cards != saved.cards {
+                    saveLocal()
+                }
             }
         }
     }
@@ -1133,7 +1137,7 @@ final class GlassDeckStudioModel {
             }
             let decoder = JSONDecoder()
             decoder.keyDecodingStrategy = .convertFromSnakeCase
-            dashboard = try decoder.decode(DashboardDefinition.self, from: data)
+            dashboard = try decoder.decode(DashboardDefinition.self, from: data).withoutUnsupportedDefaultCards()
             selectedCardID = dashboard.cards.first?.id
             selectedControlCenterCardID = dashboard.controlCenterCards.first?.id
             syncSelections()
@@ -1374,14 +1378,20 @@ struct DashboardDefinition: Codable {
             DashboardCard(id: "mac-memory", type: .metric, title: "Mémoire", subtitle: "RAM utilisée", entity: "mac.memory_percent", action: nil, x: 6, y: 0, w: 3, h: 2),
             DashboardCard(id: "mac-temperature", type: .metric, title: "Température", subtitle: "Capteur Mac", entity: "mac.temperature_celsius", action: nil, x: 9, y: 0, w: 3, h: 2),
             DashboardCard(id: "open-apps", type: .button, title: "Applications", subtitle: "Ouvrir sur le Mac", entity: nil, action: "open-applications", x: 0, y: 2, w: 3, h: 2),
-            DashboardCard(id: "docker-status", type: .status, title: "Docker", subtitle: "Containers", entity: "docker.status", action: nil, x: 3, y: 2, w: 3, h: 2),
-            DashboardCard(id: "k8s-status", type: .status, title: "Kubernetes", subtitle: "Cluster", entity: "kubernetes.status", action: nil, x: 6, y: 2, w: 3, h: 2),
-            DashboardCard(id: "system-volume", type: .button, title: "Volume", subtitle: "Mute / Unmute", entity: nil, action: "toggle-mute", x: 9, y: 2, w: 3, h: 2),
-            DashboardCard(id: "system-lock", type: .button, title: "Écran", subtitle: "Verrouiller", entity: nil, action: "lock-screen", x: 0, y: 4, w: 3, h: 2),
+            DashboardCard(id: "system-volume", type: .button, title: "Volume", subtitle: "Mute / Unmute", entity: nil, action: "toggle-mute", x: 3, y: 2, w: 3, h: 2),
+            DashboardCard(id: "system-lock", type: .button, title: "Écran", subtitle: "Verrouiller", entity: nil, action: "lock-screen", x: 6, y: 2, w: 3, h: 2),
         ],
         dockActions: defaultDockActions,
         controlCenterCards: defaultControlCenterCards
     )
+
+    func withoutUnsupportedDefaultCards() -> DashboardDefinition {
+        var cleaned = self
+        cleaned.cards.removeAll { card in
+            card.id == "docker-status" || card.id == "k8s-status"
+        }
+        return cleaned
+    }
 
     static let defaultDockActions = [
             DashboardDockAction(id: "dock-ping", title: "Ping", action: "ping"),
