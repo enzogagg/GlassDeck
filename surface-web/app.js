@@ -142,6 +142,12 @@ function readDashboardValue(entity) {
     const value = readMetric(state.metrics, "temperatureCelsius", "temperature_celsius");
     return Number.isFinite(value) && value > 0 ? formatTemperature(value) : "--°";
   }
+  if (entity === "docker.status") {
+    return readMetric(state.metrics, "dockerStatus", "docker_status") || "--";
+  }
+  if (entity === "kubernetes.status") {
+    return readMetric(state.metrics, "kubernetesStatus", "kubernetes_status") || "--";
+  }
   return "--";
 }
 

@@ -621,6 +621,8 @@ struct MacMetrics: Encodable {
     let memoryTotalBytes: UInt64?
     let temperatureCelsius: Double?
     let temperatureSource: String?
+    let dockerStatus: String
+    let kubernetesStatus: String
 }
 
 final class MacTelemetrySampler {
@@ -645,7 +647,15 @@ final class MacTelemetrySampler {
             memoryUsedBytes: memoryUsedBytes(),
             memoryTotalBytes: ProcessInfo.processInfo.physicalMemory,
             temperatureCelsius: temperature.value,
-            temperatureSource: temperature.source
+            temperatureSource: temperature.source,
+            dockerStatus: serviceStatus(
+                executables: ["docker", "/opt/homebrew/bin/docker", "/usr/local/bin/docker"],
+                arguments: ["info", "--format", "{{.ServerVersion}}"]
+            ),
+            kubernetesStatus: serviceStatus(
+                executables: ["kubectl", "/opt/homebrew/bin/kubectl", "/usr/local/bin/kubectl"],
+                arguments: ["cluster-info", "--request-timeout=2s"]
+            )
         )
 
         lastSnapshot = metrics
@@ -765,9 +775,36 @@ final class MacTelemetrySampler {
     }
 
     private func commandOutput(executable: String) -> String? {
+        commandOutput(executable: executable, arguments: [])
+    }
+
+    private func serviceStatus(executables: [String], arguments: [String]) -> String {
+        var commandFound = false
+        for executable in executables {
+            let result = commandResult(executable: executable, arguments: arguments)
+            if result.launched {
+                commandFound = true
+            }
+            if result.succeeded {
+                return "Actif"
+            }
+        }
+
+        return commandFound ? "Hors ligne" : "Indispo"
+    }
+
+    private func commandOutput(executable: String, arguments: [String]) -> String? {
+        let result = commandResult(executable: executable, arguments: arguments)
+        guard result.succeeded else {
+            return nil
+        }
+        return result.output
+    }
+
+    private func commandResult(executable: String, arguments: [String]) -> (launched: Bool, succeeded: Bool, output: String?) {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
-        process.arguments = [executable]
+        process.arguments = [executable] + arguments
 
         let pipe = Pipe()
         process.standardInput = FileHandle.nullDevice
@@ -778,15 +815,16 @@ final class MacTelemetrySampler {
             try process.run()
             process.waitUntilExit()
         } catch {
-            return nil
+            return (false, false, nil)
         }
 
         guard process.terminationStatus == 0 else {
-            return nil
+            return (true, false, nil)
         }
 
-        return String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8)?
+        let output = String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8)?
             .trimmingCharacters(in: .whitespacesAndNewlines)
+        return (true, true, output)
     }
 
     private func parseTemperature(_ output: String) -> Double? {

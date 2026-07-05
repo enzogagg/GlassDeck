@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 @main
 struct GlassDeckMacApp: App {
@@ -7,6 +8,7 @@ struct GlassDeckMacApp: App {
     var body: some Scene {
         WindowGroup {
             StudioView(model: model)
+                .onAppear(perform: activateGlassDeckWindow)
         }
         .windowStyle(.hiddenTitleBar)
         .defaultSize(width: 1360, height: 860)
@@ -31,6 +33,14 @@ struct GlassDeckMacApp: App {
             }
         }
     }
+}
+
+@MainActor
+private func activateGlassDeckWindow() {
+    let app = NSApplication.shared
+    app.setActivationPolicy(.regular)
+    app.activate(ignoringOtherApps: true)
+    app.windows.first?.makeKeyAndOrderFront(nil)
 }
 
 struct StudioView: View {
