@@ -126,6 +126,11 @@ function readMetric(metrics, camelKey, snakeKey) {
   return metrics?.[camelKey] ?? metrics?.[snakeKey] ?? null;
 }
 
+function formatNameList(value) {
+  const items = Array.isArray(value) ? value.filter(Boolean) : [];
+  return items.length > 0 ? items.join("\n") : "Aucun";
+}
+
 function readDashboardValue(entity) {
   if (entity === "mac.daemon") {
     return state.online ? "Connecté" : "Hors ligne";
@@ -148,7 +153,17 @@ function readDashboardValue(entity) {
   if (entity === "kubernetes.status") {
     return readMetric(state.metrics, "kubernetesStatus", "kubernetes_status") || "--";
   }
+  if (entity === "docker.containers") {
+    return formatNameList(readMetric(state.metrics, "dockerContainers", "docker_containers"));
+  }
+  if (entity === "kubernetes.pods") {
+    return formatNameList(readMetric(state.metrics, "kubernetesPods", "kubernetes_pods"));
+  }
   return "--";
+}
+
+function isListEntity(entity) {
+  return entity === "docker.containers" || entity === "kubernetes.pods";
 }
 
 function normalizeGridValue(card, key, fallback) {
@@ -208,6 +223,9 @@ function renderDashboard(dashboard = state.dashboard) {
     }
     title.textContent = card.type === "title" ? "" : (card.title || "Carte");
     value.className = card.type === "title" ? "dashboard-card-value title-value" : "dashboard-card-value";
+    if (isListEntity(card.entity)) {
+      value.classList.add("dashboard-card-list-value");
+    }
     subtitle.textContent = card.subtitle || card.entity || card.action || "";
 
     item.append(eyebrow, title, value, subtitle);

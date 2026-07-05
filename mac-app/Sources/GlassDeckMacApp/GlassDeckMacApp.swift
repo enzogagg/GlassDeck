@@ -308,6 +308,12 @@ struct CardLibrary: View {
             LibraryCard(symbol: "textformat.size", title: "Titre", subtitle: "App ou section") {
                 model.addCard(type: .title)
             }
+            LibraryCard(symbol: "shippingbox", title: "Docker", subtitle: "Containers actifs") {
+                model.addCard(type: .metric, title: "Containers Docker", subtitle: "En cours", entity: "docker.containers", width: 4, height: 3)
+            }
+            LibraryCard(symbol: "cube.transparent", title: "Pods", subtitle: "Kubernetes actifs") {
+                model.addCard(type: .metric, title: "Pods Kubernetes", subtitle: "En cours", entity: "kubernetes.pods", width: 4, height: 3)
+            }
             Spacer()
             Text("Ajoute une carte, puis déplace-la sur la grille.")
                 .font(.caption)
@@ -479,7 +485,7 @@ struct CanvasCard: View {
 
             Text(value)
                 .font(.system(size: card.type == .title ? 42 : (card.type == .button ? 22 : 34), weight: .bold))
-                .lineLimit(1)
+                .lineLimit(card.isListEntity ? 4 : 1)
                 .minimumScaleFactor(0.72)
 
             Spacer()
@@ -1189,20 +1195,27 @@ final class GlassDeckStudioModel {
         }
     }
 
-    func addCard(type: DashboardCardType = .metric) {
+    func addCard(
+        type: DashboardCardType = .metric,
+        title: String? = nil,
+        subtitle: String? = nil,
+        entity: String? = nil,
+        width: Int = 3,
+        height: Int = 2
+    ) {
         activeSurface = .dashboard
-        let nextPosition = nextCardPosition(width: type == .button ? 3 : 3, height: 2)
+        let nextPosition = nextCardPosition(width: width, height: height)
         let card = DashboardCard(
             id: "card-\(UUID().uuidString.prefix(8))",
             type: type,
-            title: defaultTitle(for: type),
-            subtitle: defaultSubtitle(for: type),
-            entity: type == .button || type == .title ? nil : "mac.cpu_percent",
+            title: title ?? defaultTitle(for: type),
+            subtitle: subtitle ?? defaultSubtitle(for: type),
+            entity: entity ?? (type == .button || type == .title ? nil : "mac.cpu_percent"),
             action: type == .button ? (actions.first?.id ?? "ping") : nil,
             x: nextPosition.x,
             y: nextPosition.y,
-            w: 3,
-            h: 2
+            w: width,
+            h: height
         )
         dashboard.cards.append(card)
         selectedCardID = card.id
@@ -1316,6 +1329,8 @@ final class GlassDeckStudioModel {
             return "--°"
         case "docker.status", "kubernetes.status":
             return "Actif"
+        case "docker.containers", "kubernetes.pods":
+            return "nom-1\nnom-2"
         default:
             return "--"
         }
@@ -1425,6 +1440,10 @@ struct DashboardCard: Codable, Identifiable, Equatable {
     var y: Int
     var w: Int
     var h: Int
+
+    var isListEntity: Bool {
+        entity == "docker.containers" || entity == "kubernetes.pods"
+    }
 }
 
 struct DashboardDockAction: Codable, Identifiable, Equatable {
@@ -1492,6 +1511,8 @@ enum DashboardEntity: String, CaseIterable, Identifiable {
     case temperature = "mac.temperature_celsius"
     case docker = "docker.status"
     case kubernetes = "kubernetes.status"
+    case dockerContainers = "docker.containers"
+    case kubernetesPods = "kubernetes.pods"
 
     var id: String { rawValue }
 
@@ -1503,6 +1524,8 @@ enum DashboardEntity: String, CaseIterable, Identifiable {
         case .temperature: "Température"
         case .docker: "Docker"
         case .kubernetes: "Kubernetes"
+        case .dockerContainers: "Containers Docker"
+        case .kubernetesPods: "Pods Kubernetes"
         }
     }
 }

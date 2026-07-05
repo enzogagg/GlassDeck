@@ -623,6 +623,8 @@ struct MacMetrics: Encodable {
     let temperatureSource: String?
     let dockerStatus: String
     let kubernetesStatus: String
+    let dockerContainers: [String]
+    let kubernetesPods: [String]
 }
 
 final class MacTelemetrySampler {
@@ -655,6 +657,22 @@ final class MacTelemetrySampler {
             kubernetesStatus: serviceStatus(
                 executables: ["kubectl", "/opt/homebrew/bin/kubectl", "/usr/local/bin/kubectl"],
                 arguments: ["cluster-info", "--request-timeout=2s"]
+            ),
+            dockerContainers: commandLines(
+                executables: ["docker", "/opt/homebrew/bin/docker", "/usr/local/bin/docker"],
+                arguments: ["ps", "--format", "{{.Names}}"]
+            ),
+            kubernetesPods: commandLines(
+                executables: ["kubectl", "/opt/homebrew/bin/kubectl", "/usr/local/bin/kubectl"],
+                arguments: [
+                    "get",
+                    "pods",
+                    "-A",
+                    "--field-selector=status.phase=Running",
+                    "-o",
+                    "jsonpath={range .items[*]}{.metadata.namespace}/{.metadata.name}{\"\\n\"}{end}",
+                    "--request-timeout=2s",
+                ]
             )
         )
 
@@ -791,6 +809,22 @@ final class MacTelemetrySampler {
         }
 
         return commandFound ? "Hors ligne" : "Indispo"
+    }
+
+    private func commandLines(executables: [String], arguments: [String]) -> [String] {
+        for executable in executables {
+            let result = commandResult(executable: executable, arguments: arguments)
+            guard result.succeeded, let output = result.output else {
+                continue
+            }
+
+            return output
+                .split(whereSeparator: \.isNewline)
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
+        }
+
+        return []
     }
 
     private func commandOutput(executable: String, arguments: [String]) -> String? {

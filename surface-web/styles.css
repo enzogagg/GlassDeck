@@ -349,6 +349,17 @@ input:focus-visible {
   line-height: 1;
 }
 
+.dashboard-card-list-value {
+  display: block;
+  max-height: 100%;
+  font-size: 0.92rem;
+  font-weight: 680;
+  line-height: 1.22;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: pre-line;
+}
+
 .dashboard-card small {
   color: var(--ink-dim);
   font-size: 0.76rem;
