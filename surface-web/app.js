@@ -196,7 +196,7 @@ function renderDashboard(dashboard = state.dashboard) {
 
     eyebrow.className = "dashboard-card-eyebrow";
     if (card.type === "title") {
-        eyebrow.textContent = "Application Active";
+        eyebrow.textContent = "Titre";
     } else {
         eyebrow.textContent = card.type === "button" ? "Commande" : "Entité";
     }
@@ -255,11 +255,11 @@ function renderDock(dashboard = state.dashboard) {
   }
 
   const dockActions = dashboard.dockActions || dashboard.dock_actions || [];
+  elements.actionDock.innerHTML = "";
   if (dockActions.length === 0) {
     return;
   }
 
-  elements.actionDock.innerHTML = "";
   for (const dockAction of dockActions) {
     const button = document.createElement("button");
     const icon = document.createElement("span");
@@ -799,7 +799,7 @@ elements.controlCenterButton.addEventListener("click", () => {
 });
 
 elements.refreshButton.addEventListener("click", refreshStatus);
-elements.dockRefreshButton.addEventListener("click", () => {
+elements.dockRefreshButton?.addEventListener("click", () => {
   refreshSurfaceStatus();
   refreshStatus();
   refreshDashboard();
