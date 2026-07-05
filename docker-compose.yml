@@ -1,0 +1,12 @@
+---
+services:
+  surface-web:
+    image: python:3.12-alpine
+    working_dir: /app
+    command: python surface-web/server.py
+    environment:
+      GLASSDECK_SURFACE_WEB_PORT: "8090"
+    ports:
+      - "8090:8090"
+    volumes:
+      - .:/app:ro
