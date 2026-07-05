@@ -295,6 +295,9 @@ struct CardLibrary: View {
             LibraryCard(symbol: "button.programmable", title: "Bouton", subtitle: "Action Mac") {
                 model.addCard(type: .button)
             }
+            LibraryCard(symbol: "textformat.size", title: "Titre", subtitle: "App ou section") {
+                model.addCard(type: .title)
+            }
             Spacer()
             Text("Ajoute une carte, puis déplace-la sur la grille.")
                 .font(.caption)
@@ -458,12 +461,14 @@ struct CanvasCard: View {
                 }
             }
 
-            Text(card.title)
-                .font(.system(size: 18, weight: .semibold))
-                .lineLimit(1)
+            if card.type != .title {
+                Text(card.title)
+                    .font(.system(size: 18, weight: .semibold))
+                    .lineLimit(1)
+            }
 
             Text(value)
-                .font(.system(size: card.type == .button ? 22 : 34, weight: .bold))
+                .font(.system(size: card.type == .title ? 42 : (card.type == .button ? 22 : 34), weight: .bold))
                 .lineLimit(1)
                 .minimumScaleFactor(0.72)
 
@@ -798,15 +803,17 @@ struct CardEditor: View {
             }
             .pickerStyle(.segmented)
 
-            Picker("Entité", selection: stringBinding($card.entity, fallback: "mac.cpu_percent")) {
-                ForEach(DashboardEntity.allCases) { entity in
-                    Text(entity.title).tag(entity.rawValue)
+            if card.type == .button {
+                Picker("Action", selection: stringBinding($card.action, fallback: "ping")) {
+                    ForEach(model.actions) { action in
+                        Text(action.label).tag(action.id)
+                    }
                 }
-            }
-
-            Picker("Action", selection: stringBinding($card.action, fallback: "ping")) {
-                ForEach(model.actions) { action in
-                    Text(action.label).tag(action.id)
+            } else if card.type != .title {
+                Picker("Entité", selection: stringBinding($card.entity, fallback: "mac.cpu_percent")) {
+                    ForEach(DashboardEntity.allCases) { entity in
+                        Text(entity.title).tag(entity.rawValue)
+                    }
                 }
             }
 
@@ -894,7 +901,7 @@ struct ControlCenterSingleCardEditor: View {
                         Text(action.label).tag(action.id)
                     }
                 }
-            } else {
+            } else if card.type != .title {
                 Picker("Entité", selection: stringBinding($card.entity, fallback: "mac.cpu_percent")) {
                     ForEach(DashboardEntity.allCases) { entity in
                         Text(entity.title).tag(entity.rawValue)
@@ -1062,13 +1069,9 @@ final class GlassDeckStudioModel {
             let decoder = JSONDecoder()
             decoder.keyDecodingStrategy = .convertFromSnakeCase
             if let saved = try? decoder.decode(DashboardDefinition.self, from: data) {
-                let cleaned = saved.withoutUnsupportedDefaultCards()
-                self.dashboard = cleaned
-                self.selectedCardID = cleaned.cards.first?.id
-                self.selectedControlCenterCardID = cleaned.controlCenterCards.first?.id
-                if cleaned.cards != saved.cards {
-                    saveLocal()
-                }
+                self.dashboard = saved
+                self.selectedCardID = saved.cards.first?.id
+                self.selectedControlCenterCardID = saved.controlCenterCards.first?.id
             }
         }
     }
@@ -1137,7 +1140,7 @@ final class GlassDeckStudioModel {
             }
             let decoder = JSONDecoder()
             decoder.keyDecodingStrategy = .convertFromSnakeCase
-            dashboard = try decoder.decode(DashboardDefinition.self, from: data).withoutUnsupportedDefaultCards()
+            dashboard = try decoder.decode(DashboardDefinition.self, from: data)
             selectedCardID = dashboard.cards.first?.id
             selectedControlCenterCardID = dashboard.controlCenterCards.first?.id
             syncSelections()
@@ -1184,7 +1187,7 @@ final class GlassDeckStudioModel {
             type: type,
             title: defaultTitle(for: type),
             subtitle: defaultSubtitle(for: type),
-            entity: type == .button ? nil : "mac.cpu_percent",
+            entity: type == .button || type == .title ? nil : "mac.cpu_percent",
             action: type == .button ? (actions.first?.id ?? "ping") : nil,
             x: nextPosition.x,
             y: nextPosition.y,
@@ -1230,6 +1233,7 @@ final class GlassDeckStudioModel {
         case .metric: "Métrique"
         case .status: "Statut Mac"
         case .button: "Action"
+        case .title: "Titre"
         }
     }
 
@@ -1238,6 +1242,7 @@ final class GlassDeckStudioModel {
         case .metric: "Entité Mac"
         case .status: "Connexion"
         case .button: "Commande Mac"
+        case .title: "Section Stream Deck"
         }
     }
 
@@ -1285,6 +1290,9 @@ final class GlassDeckStudioModel {
     }
 
     func previewValue(for card: DashboardCard) -> String {
+        if card.type == .title {
+            return card.title
+        }
         if card.type == .button {
             return "Action"
         }
@@ -1385,14 +1393,6 @@ struct DashboardDefinition: Codable {
         controlCenterCards: defaultControlCenterCards
     )
 
-    func withoutUnsupportedDefaultCards() -> DashboardDefinition {
-        var cleaned = self
-        cleaned.cards.removeAll { card in
-            card.id == "docker-status" || card.id == "k8s-status"
-        }
-        return cleaned
-    }
-
     static let defaultDockActions = [
             DashboardDockAction(id: "dock-ping", title: "Ping", action: "ping"),
             DashboardDockAction(id: "dock-apps", title: "Apps", action: "open-applications"),
@@ -1460,6 +1460,7 @@ enum DashboardCardType: String, Codable, CaseIterable, Identifiable {
     case metric
     case status
     case button
+    case title
 
     var id: String { rawValue }
 
@@ -1468,6 +1469,7 @@ enum DashboardCardType: String, Codable, CaseIterable, Identifiable {
         case .metric: "Métrique"
         case .status: "Statut"
         case .button: "Bouton"
+        case .title: "Titre"
         }
     }
 
@@ -1476,6 +1478,7 @@ enum DashboardCardType: String, Codable, CaseIterable, Identifiable {
         case .metric: "chart.line.uptrend.xyaxis"
         case .status: "checkmark.circle"
         case .button: "button.programmable"
+        case .title: "textformat.size"
         }
     }
 }
