@@ -1380,15 +1380,7 @@ struct DashboardDefinition: Codable {
         id: "main",
         name: "Principal",
         grid: DashboardGrid(columns: 12, rowHeight: 64, gap: 12),
-        cards: [
-            DashboardCard(id: "mac-status", type: .status, title: "Mac", subtitle: "Daemon GlassDeck", entity: "mac.daemon", action: nil, x: 0, y: 0, w: 3, h: 2),
-            DashboardCard(id: "mac-cpu", type: .metric, title: "CPU", subtitle: "Utilisation", entity: "mac.cpu_percent", action: nil, x: 3, y: 0, w: 3, h: 2),
-            DashboardCard(id: "mac-memory", type: .metric, title: "Mémoire", subtitle: "RAM utilisée", entity: "mac.memory_percent", action: nil, x: 6, y: 0, w: 3, h: 2),
-            DashboardCard(id: "mac-temperature", type: .metric, title: "Température", subtitle: "Capteur Mac", entity: "mac.temperature_celsius", action: nil, x: 9, y: 0, w: 3, h: 2),
-            DashboardCard(id: "open-apps", type: .button, title: "Applications", subtitle: "Ouvrir sur le Mac", entity: nil, action: "open-applications", x: 0, y: 2, w: 3, h: 2),
-            DashboardCard(id: "system-volume", type: .button, title: "Volume", subtitle: "Mute / Unmute", entity: nil, action: "toggle-mute", x: 3, y: 2, w: 3, h: 2),
-            DashboardCard(id: "system-lock", type: .button, title: "Écran", subtitle: "Verrouiller", entity: nil, action: "lock-screen", x: 6, y: 2, w: 3, h: 2),
-        ],
+        cards: [],
         dockActions: defaultDockActions,
         controlCenterCards: defaultControlCenterCards
     )

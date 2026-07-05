@@ -438,7 +438,11 @@ final class DashboardStore: @unchecked Sendable {
 
     init() {
         fileURL = Self.defaultFileURL()
-        dashboard = Self.loadDashboard(from: fileURL) ?? DashboardDefinition.defaultMain
+        let loadedDashboard = Self.loadDashboard(from: fileURL) ?? DashboardDefinition.defaultMain
+        dashboard = loadedDashboard.withoutLegacyGeneratedCards()
+        if dashboard.cards.count != loadedDashboard.cards.count {
+            try? persist(dashboard)
+        }
     }
 
     func mainDashboard() -> DashboardDefinition {
@@ -531,71 +535,26 @@ struct DashboardDefinition: Codable {
         id: "main",
         name: "Principal",
         grid: DashboardGrid(columns: 12, rowHeight: 64, gap: 12),
-        cards: [
-            DashboardCard(
-                id: "mac-status",
-                type: .status,
-                title: "Mac",
-                subtitle: "Daemon GlassDeck",
-                entity: "mac.daemon",
-                action: nil,
-                x: 0,
-                y: 0,
-                w: 3,
-                h: 2
-            ),
-            DashboardCard(
-                id: "mac-cpu",
-                type: .metric,
-                title: "CPU",
-                subtitle: "Utilisation",
-                entity: "mac.cpu_percent",
-                action: nil,
-                x: 3,
-                y: 0,
-                w: 3,
-                h: 2
-            ),
-            DashboardCard(
-                id: "mac-memory",
-                type: .metric,
-                title: "Mémoire",
-                subtitle: "RAM utilisée",
-                entity: "mac.memory_percent",
-                action: nil,
-                x: 6,
-                y: 0,
-                w: 3,
-                h: 2
-            ),
-            DashboardCard(
-                id: "mac-temperature",
-                type: .metric,
-                title: "Température",
-                subtitle: "Capteur Mac",
-                entity: "mac.temperature_celsius",
-                action: nil,
-                x: 9,
-                y: 0,
-                w: 3,
-                h: 2
-            ),
-            DashboardCard(
-                id: "open-apps",
-                type: .button,
-                title: "Applications",
-                subtitle: "Ouvrir sur le Mac",
-                entity: nil,
-                action: "open-applications",
-                x: 0,
-                y: 2,
-                w: 3,
-                h: 2
-            ),
-        ],
+        cards: [],
         dockActions: defaultDockActions,
         controlCenterCards: defaultControlCenterCards
     )
+
+    func withoutLegacyGeneratedCards() -> DashboardDefinition {
+        let generatedIDs: Set<String> = [
+            "title-card",
+            "application-active",
+            "docker-status",
+            "k8s-status",
+            "system-volume",
+            "system-lock",
+            "system-theme",
+            "theme-toggle",
+        ]
+        var cleaned = self
+        cleaned.cards.removeAll { generatedIDs.contains($0.id) }
+        return cleaned
+    }
 
     static let defaultDockActions = [
             DashboardDockAction(id: "dock-ping", title: "Ping", action: "ping"),
